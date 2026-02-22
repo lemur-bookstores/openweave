@@ -140,6 +140,9 @@ Leer docs\SKILL-package-setup.md
   - Error handling and edge cases
   - Tool metadata validation
 
+### M4.1 · Weave Check
+- WeaveCheck — eval suite & QA framework
+
 ### M5 · Weave CLI
 - 🔜 `weave init <project>` — scaffold session
 - 🔜 `weave status` — show current milestones

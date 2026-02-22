@@ -1,0 +1,42 @@
+{
+  "name": "@openweave/weave-cli",
+  "version": "0.1.0",
+  "description": "Weave CLI - Command-line interface for OpenWeave agent framework",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "weave": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest --no-coverage",
+    "cli": "node dist/cli.js"
+  },
+  "keywords": [
+    "openweave",
+    "cli",
+    "agent",
+    "planning"
+  ],
+  "author": "OpenWeave Team",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "@openweave/weave-graph": "workspace:*",
+    "@openweave/weave-path": "workspace:*",
+    "@openweave/weave-lint": "workspace:*",
+    "@openweave/weave-link": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.1",
+    "typescript": "5.7.2",
+    "vitest": "3.0.0",
+    "tsx": "4.7.0"
+  }
+}

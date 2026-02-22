@@ -61,10 +61,10 @@ openweave/
 
 Leer docs\SKILL-package-setup.md
 
-## PHASE 1 — Foundation `v0.1.0` 🔄
+## PHASE 1 — Foundation `v0.1.0` ✅
 
 > Goal: Core packages working locally, CLI usable, MCP server connectable.
-> Status: M1-M4 completed, M5 in progress
+> Status: M1-M5 completed
 
 ### M1 · WeaveGraph Core ✅
 - ✅ Node and edge data models (6 types, 6 edge types)
@@ -140,13 +140,27 @@ Leer docs\SKILL-package-setup.md
   - Error handling and edge cases
   - Tool metadata validation
 
-### M4.1 · Weave Check
-- WeaveCheck — eval suite & QA framework
-
-### M5 · Weave CLI
-- 🔜 `weave init <project>` — scaffold session
-- 🔜 `weave status` — show current milestones
-- 🔜 `weave errors` — list error pattern registry
+### M5 · Weave CLI ✅
+- ✅ CLI command interface (7 commands)
+- ✅ `weave init <project>` — Initialize new project with .weave directory
+- ✅ `weave status` — Show current project status and graph statistics
+- ✅ `weave milestones` — List all milestones with filtering and progress bars
+- ✅ `weave query <term>` — Search knowledge graph with type and limit filters
+- ✅ `weave orphans` — Analyze code for unused exports with severity levels
+- ✅ `weave errors` — Display error registry with filtering options
+- ✅ `weave save-node` — Manually add nodes to the knowledge graph
+- ✅ Argument parsing with global flags (--help, --version, --json, --verbose)
+- ✅ Interactive output with status icons and progress indicators
+- ✅ JSON output support for all commands for programmatic use
+- ✅ Unit tests (29 tests passing)
+  - InitCommand: 3 tests (create, invalid args, reinit protection)
+  - StatusCommand: 3 tests (display, verbose, JSON format)
+  - MilestonesCommand: 3 tests (list, filter, JSON format)
+  - QueryCommand: 3 tests (search, limit, type filter)
+  - OrphansCommand: 3 tests (analyze, filter by severity and type)
+  - ErrorsCommand: 3 tests (registry, type and status filters)
+  - SaveNodeCommand: 5 tests (create, validation, metadata, JSON)
+  - CLI Integration: 3 tests (help, version, command structure)
 
 ---
 

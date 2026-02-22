@@ -64,7 +64,7 @@ Leer docs\SKILL-package-setup.md
 ## PHASE 1 — Foundation `v0.1.0` 🔄
 
 > Goal: Core packages working locally, CLI usable, MCP server connectable.
-> Status: M1 completed, M2-M5 in progress
+> Status: M1-M3 completed, M4-M5 in progress
 
 ### M1 · WeaveGraph Core ✅
 - ✅ Node and edge data models (6 types, 6 edge types)
@@ -90,10 +90,29 @@ Leer docs\SKILL-package-setup.md
   - Comprehensive orphan report generation with suggestions
 - ✅ Unit tests (22 tests passing)
 
-### M3 · WeavePath Core
-- 🔜 Milestone + sub-task data model
-- 🔜 `roadmap.md` auto-generation
-- 🔜 Next actionable sub-task resolver
+### M3 · WeavePath Core ✅
+- ✅ Milestone + sub-task data model (types.ts)
+  - Status enum: NOT_STARTED, IN_PROGRESS, COMPLETED, BLOCKED, DEFERRED
+  - Priority levels: CRITICAL → HIGH → MEDIUM → LOW
+  - Hierarchical structure: Epic → Phase → Milestone → SubTask
+- ✅ WeavePath core engine (weave-path.ts)
+  - Full CRUD for milestones and sub-tasks
+  - Automatic milestone status propagation from sub-tasks
+  - Two-phase next action resolver respecting dependencies
+  - Progress metrics with hours tracking (est. vs actual)
+  - Session persistence (save/load milestone state)
+- ✅ Roadmap auto-generation (roadmap-generator.ts)
+  - Markdown generation from milestone data
+  - Progress bars and summary tables
+  - Status icons for visual scanning
+- ✅ Unit tests (19 tests passing)
+  - Milestone management: 3 tests
+  - Sub-task management: 4 tests
+  - Progress metrics: 3 tests
+  - Next action resolver: 3 tests
+  - Roadmap generation: 3 tests
+  - Session persistence: 1 test
+  - RoadmapGenerator: 3 tests
 
 ### M4 · WeaveLink MCP Server
 - 🔜 MCP server scaffold (TypeScript SDK)

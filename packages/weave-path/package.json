@@ -1,0 +1,30 @@
+{
+  "name": "@openweave/weave-path",
+  "version": "0.1.0",
+  "description": "WeavePath - Milestone & sub-task planner for OpenWeave",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest --no-coverage"
+  },
+  "keywords": [
+    "openweave",
+    "roadmap",
+    "milestone",
+    "planning"
+  ],
+  "author": "OpenWeave Team",
+  "license": "MIT",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "22.10.1",
+    "typescript": "5.7.2",
+    "vitest": "3.0.0"
+  }
+}

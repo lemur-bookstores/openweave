@@ -1,0 +1,29 @@
+{
+  "name": "@openweave/weave-embed",
+  "version": "0.1.0",
+  "description": "Semantic embedding service with local transformer support for OpenWeave",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "embeddings",
+    "semantic",
+    "transformers",
+    "vector",
+    "similarity"
+  ],
+  "author": "OpenWeave Contributors",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@xenova/transformers": "^2.6.5",
+    "@openweave/weave-graph": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^3.0.0"
+  }
+}

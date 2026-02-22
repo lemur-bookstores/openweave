@@ -74,10 +74,21 @@ Leer docs\SKILL-package-setup.md
 - ✅ Error suppression + correction node linking
 - ✅ Unit tests (43 tests passing)
 
-### M2 · WeaveLint Core
-- 🔜 Python AST orphan detector
-- 🔜 TypeScript orphan detector
-- 🔜 Orphan report generator
+### M2 · WeaveLint Core ✅
+- ✅ TypeScript AST orphan detector (8 tests)
+  - Function, class, interface, type, variable extraction
+  - Export status detection with keyword matching
+  - Usage reference tracking with context snippets
+- ✅ Python AST orphan detector (5 tests)
+  - Function, class, module-level variable analysis
+  - Private/public visibility semantics
+  - Import and usage pattern tracking
+- ✅ OrphanDetector core engine (9 tests)
+  - Two-phase analysis: entity discovery + usage mapping
+  - Severity classification (CRITICAL/HIGH/MEDIUM/LOW)
+  - Special entity recognition (main, __init__, exports, etc.)
+  - Comprehensive orphan report generation with suggestions
+- ✅ Unit tests (22 tests passing)
 
 ### M3 · WeavePath Core
 - 🔜 Milestone + sub-task data model

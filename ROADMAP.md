@@ -64,7 +64,7 @@ Leer docs\SKILL-package-setup.md
 ## PHASE 1 — Foundation `v0.1.0` 🔄
 
 > Goal: Core packages working locally, CLI usable, MCP server connectable.
-> Status: M1-M3 completed, M4-M5 in progress
+> Status: M1-M4 completed, M5 in progress
 
 ### M1 · WeaveGraph Core ✅
 - ✅ Node and edge data models (6 types, 6 edge types)
@@ -114,10 +114,31 @@ Leer docs\SKILL-package-setup.md
   - Session persistence: 1 test
   - RoadmapGenerator: 3 tests
 
-### M4 · WeaveLink MCP Server
-- 🔜 MCP server scaffold (TypeScript SDK)
-- 🔜 Tools: `save_node`, `query_graph`, `suppress_node`, `update_roadmap`, `get_session_context`
-- 🔜 Local stdio transport
+### M4 · WeaveLink MCP Server ✅
+- ✅ WeaveLinkServer core (mcp-server.ts)
+  - Full tool call routing with error handling
+  - Session management and state tracking
+  - Mock implementations for all 7 tools
+  - Server info and capabilities reporting
+- ✅ MCP tool definitions (tools.ts) with 7 tools:
+  - `save_node` — Add/update nodes in knowledge graph
+  - `query_graph` — Search graph by keyword  
+  - `suppress_error` — Mark errors with corrections
+  - `update_roadmap` — Track milestone progress
+  - `get_session_context` — Retrieve full session state
+  - `get_next_action` — Recommend next sub-task
+  - `list_orphans` — Detect unused code in project
+- ✅ Complete type system (types.ts)
+  - Argument types for all tools
+  - Response wrappers and MCP protocol structures
+  - Tool definition interfaces
+- ✅ Unit tests (29 tests passing)
+  - Server initialization and configuration
+  - Tool listing and retrieval
+  - All 7 tool handlers tested
+  - Input validation for each tool
+  - Error handling and edge cases
+  - Tool metadata validation
 
 ### M5 · Weave CLI
 - 🔜 `weave init <project>` — scaffold session

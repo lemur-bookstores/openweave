@@ -1,6 +1,7 @@
 import { Node, Edge, NodeType, EdgeType, GraphSnapshot } from "./types";
 import { NodeBuilder } from "./node";
 import { EdgeBuilder } from "./edge";
+import { CompressionManager, ErrorSuppression } from "./compression";
 
 /**
  * ContextGraphManager
@@ -281,11 +282,24 @@ export class ContextGraphManager {
 
   /**
    * Get the current window size percentage
-   * (Placeholder for implementation during compression task)
+   * Calculates actual context window usage based on node and edge sizes
    */
   getContextWindowUsage(): number {
-    // TODO: Implement with actual context size calculation
-    return 0;
+    const contextSize = CompressionManager.calculateContextSize(
+      this.getAllNodes(),
+      this.getAllEdges()
+    );
+    return CompressionManager.calculateContextUsagePercentage(contextSize);
+  }
+
+  /**
+   * Get estimated context size in bytes
+   */
+  getContextSize(): number {
+    return CompressionManager.calculateContextSize(
+      this.getAllNodes(),
+      this.getAllEdges()
+    );
   }
 
   /**
@@ -293,6 +307,73 @@ export class ContextGraphManager {
    */
   shouldCompress(): boolean {
     return this.getContextWindowUsage() >= this.compressionThreshold;
+  }
+
+  /**
+   * Compress the graph by archiving low-frequency nodes
+   * Returns compression statistics
+   */
+  compress(targetReductionPercentage: number = 0.3) {
+    const archiveCandidates = CompressionManager.identifyArchiveCandidates(
+      this.getAllNodes(),
+      this.getAllEdges(),
+      targetReductionPercentage
+    );
+
+    const compressionMgr = new CompressionManager();
+    compressionMgr.archiveNodes(archiveCandidates, this.nodes, this.edges);
+
+    // Remove archived nodes from active graph
+    for (const nodeId of archiveCandidates) {
+      this.deleteNode(nodeId);
+    }
+
+    return {
+      archivedNodeCount: archiveCandidates.length,
+      archiveStats: compressionMgr.getArchiveStats(),
+      newContextSize: this.getContextSize(),
+      contextUsagePercentage: this.getContextWindowUsage(),
+    };
+  }
+
+  /**
+   * Suppress an error node and create a correction
+   */
+  suppressError(errorNodeId: string, correctionLabel: string, correctionDescription?: string) {
+    const errorNode = this.getNode(errorNodeId);
+    if (!errorNode || errorNode.type !== NodeType.ERROR) {
+      throw new Error("Node must be an ERROR type to suppress it");
+    }
+
+    // Mark error as suppressed
+    const suppressedError = ErrorSuppression.suppressNode(errorNode);
+    this.updateNode(errorNodeId, suppressedError);
+
+    // Create correction node and link it
+    const { correctionNode, correctionEdge } = ErrorSuppression.createCorrection(
+      errorNodeId,
+      correctionLabel,
+      correctionDescription
+    );
+
+    this.addNode(correctionNode);
+    this.addEdge(correctionEdge);
+
+    return { correctionNode, correctionEdge };
+  }
+
+  /**
+   * Get all error nodes that have been corrected
+   */
+  getCorrectedErrors() {
+    return ErrorSuppression.findCorrectedErrors(this.nodes, this.edges);
+  }
+
+  /**
+   * Get all error nodes that haven't been corrected yet
+   */
+  getUncorrectedErrors(): Node[] {
+    return ErrorSuppression.findUncorrectedErrors(this.nodes, this.edges);
   }
 
   /**
@@ -327,5 +408,7 @@ export type { Node, Edge, NodeType, EdgeType, GraphSnapshot, QueryResult } from 
 export { PersistenceManager } from "./persistence";
 export { NodeBuilder } from "./node";
 export { EdgeBuilder } from "./edge";
+export { CompressionManager, ErrorSuppression } from "./compression";
+export type { CompressionStats } from "./compression";
 
       

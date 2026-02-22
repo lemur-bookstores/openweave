@@ -5,12 +5,10 @@ import { NodeBuilder } from "../src/node";
 import { EdgeBuilder } from "../src/edge";
 import { promises as fs } from "fs";
 import * as path from "path";
-import { fileURLToPath } from "url";
+import os from "os";
 
-// Get the directory of the current file
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const testDataDir = path.join(__dirname, "..", "..", "test-weave-data");
+// Use system temp directory for test data to avoid path issues
+const testDataDir = path.join(os.tmpdir(), `weave-graph-test-${Date.now()}`);
 
 describe("PersistenceManager", () => {
   let persistenceManager: PersistenceManager;

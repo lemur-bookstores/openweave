@@ -64,13 +64,15 @@ Leer docs\SKILL-package-setup.md
 ## PHASE 1 — Foundation `v0.1.0` 🔄
 
 > Goal: Core packages working locally, CLI usable, MCP server connectable.
+> Status: M1 completed, M2-M5 in progress
 
-### M1 · WeaveGraph Core
-- 🔄 Node and edge data models
-- 🔄 JSON persistence layer per `chat_id`
-- 🔜 Keyword-based node retrieval
-- 🔜 Context compression trigger (75% threshold)
-- 🔜 Error suppression + correction node linking
+### M1 · WeaveGraph Core ✅
+- ✅ Node and edge data models (6 types, 6 edge types)
+- ✅ JSON persistence layer per `chat_id` (save/load/list/export/import)
+- ✅ Keyword-based node retrieval & ranking by frequency
+- ✅ Context compression trigger (75% threshold) with smart archival
+- ✅ Error suppression + correction node linking
+- ✅ Unit tests (43 tests passing)
 
 ### M2 · WeaveLint Core
 - 🔜 Python AST orphan detector

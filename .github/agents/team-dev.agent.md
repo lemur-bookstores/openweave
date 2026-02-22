@@ -4,7 +4,7 @@ description: End-to-end AI Agent Architect & Factory (From Prompt to MCP)
 argument-hint: Describe the agent, skill, or MCP server you want to build
 target: vscode
 disable-model-invocation: false
-tools: ['agent', 'search', 'read', 'execute/getTerminalOutput', 'web', 'vscode/askQuestions']
+tools: [vscode/askQuestions, execute/getTerminalOutput, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, read/getNotebookSummary, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/usages, search/searchSubagent, web/fetch, web/githubRepo, todo]
 agents: []
 handoffs:
   - label: "Deploy to Production"

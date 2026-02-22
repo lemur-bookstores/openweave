@@ -1,0 +1,45 @@
+{
+  "name": "@openweave/weave-link",
+  "version": "0.1.0",
+  "description": "WeaveLink — MCP Server for integrating WeaveGraph with AI clients",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "weave-link": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "eslint src --max-warnings 0",
+    "clean": "rm -rf dist",
+    "start": "node dist/cli.js"
+  },
+  "keywords": [
+    "mcp",
+    "weave",
+    "ai-agent",
+    "model-context-protocol"
+  ],
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.7.2",
+    "vitest": "3.0.0"
+  },
+  "dependencies": {
+    "@openweave/weave-graph": "workspace:*"
+  }
+}

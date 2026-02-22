@@ -1,0 +1,47 @@
+name: 🐛 Bug Report
+description: Report a bug in OpenWeave
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please fill out the sections below.
+
+  - type: input
+    id: package
+    attributes:
+      label: Affected Package
+      placeholder: "e.g. weave-graph, weave-lint, weave-link"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: What happened? What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      placeholder: |
+        1. Initialize graph with chat_id '...'
+        2. Call suppress_node with ...
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        - OS: macOS 14 / Ubuntu 22.04
+        - Node: 25.x
+        - Python: 3.11
+        - OpenWeave version: 0.1.0
+    validations:
+      required: true

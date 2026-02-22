@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20]
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Install JS dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (JS/TS)
+        run: pnpm lint
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Test all packages
+        run: pnpm test
+
+      - name: Install Python dependencies
+        run: |
+          pip install ruff mypy pytest
+          pip install -e packages/weave-graph
+          pip install -e packages/weave-lint
+
+      - name: Lint (Python)
+        run: ruff check packages/
+
+      - name: Type check (Python)
+        run: mypy packages/
+
+      - name: Test (Python)
+        run: pytest packages/ -v
+
+  weave-lint-check:
+    name: WeaveLint — No Orphan Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install WeaveLint
+        run: pip install -e packages/weave-lint
+      - name: Run WeaveLint
+        run: weave-lint check ./packages ./apps --fail-on-orphans

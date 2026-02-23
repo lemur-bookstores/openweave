@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { CLIArgs, CommandResult, CliCommand } from '../types.js';
+import { resolveProjectRoot } from '../utils.js';
 import {
   loadSkillConfig,
   setSkillEnabled,
@@ -31,7 +32,7 @@ export const skillsCommand: CliCommand = {
     const sub = args.args[0] ?? 'list';
     const skillId = args.args[1];
     const outputJson = Boolean(args.flags.json);
-    const projectRoot = process.cwd();
+    const projectRoot = resolveProjectRoot();
 
     switch (sub) {
       case 'list':

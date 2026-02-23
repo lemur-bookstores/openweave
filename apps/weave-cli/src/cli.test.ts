@@ -14,7 +14,16 @@ import { join } from 'path';
 describe('Weave CLI - Command Tests', () => {
   const testDir = join(process.cwd(), '.weave-test');
 
+  // Snapshot the CWD and INIT_CWD at module load time so each test starts clean.
+  // Commands use resolveProjectRoot() → prefers INIT_CWD → falls back to process.cwd().
+  // Tests that rely on process.chdir() must not bleed state into subsequent tests.
+  const ORIGINAL_CWD = process.cwd();
+  let _savedInitCwd: string | undefined;
+
   beforeEach(() => {
+    _savedInitCwd = process.env['INIT_CWD'];
+    delete process.env['INIT_CWD'];
+
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true });
     }
@@ -22,6 +31,15 @@ describe('Weave CLI - Command Tests', () => {
   });
 
   afterEach(() => {
+    // Always restore the original cwd, even if a test's finally-block failed.
+    try { process.chdir(ORIGINAL_CWD); } catch { /* ignore */ }
+
+    if (_savedInitCwd !== undefined) {
+      process.env['INIT_CWD'] = _savedInitCwd;
+    } else {
+      delete process.env['INIT_CWD'];
+    }
+
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true });
     }

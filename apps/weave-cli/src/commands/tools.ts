@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { CLIArgs, CommandResult, CliCommand } from '../types.js';
+import { resolveProjectRoot } from '../utils.js';
 import { validateManifest, type ToolManifest } from '@openweave/weave-tools';
 import { ToolStore } from '@openweave/weave-tools';
 
@@ -34,7 +35,7 @@ export const toolsCommand: CliCommand = {
   async execute(cliArgs: CLIArgs): Promise<CommandResult> {
     const sub = cliArgs.args[0] ?? 'list';
     const outputJson = Boolean(cliArgs.flags.json);
-    const projectRoot = process.cwd();
+    const projectRoot = resolveProjectRoot();
     const store = new ToolStore(projectRoot);
 
     switch (sub) {
@@ -320,7 +321,7 @@ async function handleTest(
 
   // Dynamically import the bridge to dispatch the call
   const { ExternalToolBridge } = await import('@openweave/weave-tools');
-  const bridge = new ExternalToolBridge(process.cwd());
+  const bridge = new ExternalToolBridge(resolveProjectRoot());
   bridge.registerManifest(manifest);
 
   const result = await bridge.execute(prefixedAction, args);

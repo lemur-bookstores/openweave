@@ -1,6 +1,7 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { CLIArgs, CommandResult, CliCommand } from '../types';
+import { resolveProjectRoot } from '../utils';
 
 interface ErrorEntry {
   id: string;
@@ -42,7 +43,7 @@ export class ErrorsCommand implements CliCommand {
 
   async execute(args: CLIArgs): Promise<CommandResult> {
     try {
-      const projectRoot = process.cwd();
+      const projectRoot = resolveProjectRoot();
       const weaveDir = join(projectRoot, '.weave');
 
       if (!existsSync(weaveDir)) {

@@ -1,6 +1,7 @@
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
 import { CLIArgs, CommandResult, CliCommand, CLIConfig } from '../types';
+import { resolveProjectRoot } from '../utils';
 
 /**
  * Init Command - Initialize a new Weave project
@@ -13,7 +14,7 @@ export class InitCommand implements CliCommand {
     root: {
       short: 'r',
       description: 'Project root directory',
-      default: process.cwd(),
+      default: '',
     },
     'include-tests': {
       short: 't',
@@ -38,7 +39,7 @@ export class InitCommand implements CliCommand {
         };
       }
 
-      const projectRoot = (args.flags.root as string) || process.cwd();
+      const projectRoot = resolveProjectRoot(args.flags.root as string | undefined);
       const weaveDir = join(projectRoot, '.weave');
       const graphDbPath = join(weaveDir, 'graph.json');
       const roadmapPath = join(weaveDir, 'ROADMAP.md');

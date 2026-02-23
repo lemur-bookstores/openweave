@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { TypeScriptAnalyzer } from "../src/typescript-analyzer";
 import { PythonAnalyzer } from "../src/python-analyzer";
 import { OrphanDetector } from "../src/analyzer";
-import { EntityType, Severity } from "../src/types";
+import { EntityType } from "../src/types";
 import fs from "fs";
 import os from "os";
 import path from "path";

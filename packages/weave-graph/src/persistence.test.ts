@@ -7,14 +7,25 @@ import { promises as fs } from "fs";
 import * as path from "path";
 import os from "os";
 
+// Resolve tmpdir to the canonical long path (avoids Windows 8.3 short-name issues)
+const resolvedTmp = (() => {
+  try {
+    const { realpathSync } = require("fs");
+    return realpathSync.native ? realpathSync.native(os.tmpdir()) : os.tmpdir();
+  } catch {
+    return os.tmpdir();
+  }
+})();
+
 // Use system temp directory for test data to avoid path issues
-const testDataDir = path.join(os.tmpdir(), `weave-graph-test-${Date.now()}`);
+const testDataDir = path.join(resolvedTmp, `weave-graph-test-${Date.now()}`);
 
 describe("PersistenceManager", () => {
   let persistenceManager: PersistenceManager;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     persistenceManager = new PersistenceManager(testDataDir);
+    await persistenceManager.ensureDataDir();
   });
 
   afterEach(async () => {
@@ -39,8 +50,7 @@ describe("PersistenceManager", () => {
     const snapshot = graph.snapshot();
     await persistenceManager.saveGraph(snapshot);
 
-    const filePath = path.join(testDataDir, "test_session.json");
-    await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for I/O
+    const filePath = path.join(testDataDir, "test-session.json");
     const content = await fs.readFile(filePath, "utf-8");
     expect(content).toBeDefined();
 

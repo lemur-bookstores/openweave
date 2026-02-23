@@ -164,67 +164,193 @@ Leer docs\SKILL-package-setup.md
 
 ---
 
-## PHASE 2 — Semantic Memory `v0.2.0` 🔜
+## PHASE 2 — Semantic Memory `v0.2.0` ✅
 
 > Goal: Replace keyword search with semantic embeddings. Graph becomes truly intelligent.
+> Status: M6-M7 completed
 
-### M6 · Embedding-Based Retrieval
-- 💭 Integrate sentence-transformers (local, no API dependency)
-- 💭 Cosine similarity search on WeaveGraph nodes
-- 💭 Hybrid search: semantic + structural graph traversal
+### M6 · Embedding-Based Retrieval ✅
+- ✅ Integrate sentence-transformers (local, no API dependency) via `@xenova/transformers`
+- ✅ Cosine similarity + Euclidean distance search on WeaveGraph nodes
+- ✅ Hybrid search: semantic + structural graph traversal with configurable weights
+- ✅ `EmbeddingService` with caching and batch processing
+- ✅ `VectorStore` with import/export persistence support
+- ✅ Unit tests (30 tests passing)
 
-### M7 · Automatic Context Grafization
-- 💭 LLM-powered entity extraction during compression
-- 💭 Auto-detect relationship types between extracted concepts
-- 💭 Confidence scoring for nodes based on repetition frequency
+### M7 · Automatic Context Grafization ✅
+- ✅ Local entity extraction from raw text (no LLM API required)
+  - PascalCase, camelCase, UPPER_SNAKE_CASE, backtick-quoted, and Title Case patterns
+  - Keyword-context classification into NodeTypes (CONCEPT, DECISION, ERROR, CORRECTION, MILESTONE, CODE_ENTITY)
+  - Frequency counting, confidence scoring (0–1), and context snippet capture
+  - Stop-word filtering and configurable min-confidence / max-entities limits
+- ✅ Auto-detection of relationship types between entity pairs
+  - 6 EdgeType patterns: CORRECTS, CAUSES, IMPLEMENTS, DEPENDS_ON, BLOCKS, RELATES
+  - Co-occurrence window analysis with proximity-weighted confidence
+  - Deduplication keeping highest-confidence pair per (src, tgt)
+- ✅ Confidence scoring based on frequency, pattern specificity, and context
+- ✅ `AutoGrafizer` orchestrator with `grafize()`, `grafizeDelta()`, and `preview()`
+- ✅ Optional semantic deduplication via `EmbeddingService` cosine similarity
+- ✅ Unit tests (37 tests passing)
+  - EntityExtractor: 11 tests
+  - RelationshipDetector: 10 tests
+  - AutoGrafizer: 12 tests
+  - Integration: 4 tests
 
 ---
 
-## PHASE 3 — Integrations `v0.3.0` 🔜
+## PHASE 3 — Integrations `v0.3.0` ✅
 
 > Goal: First-class support for major AI clients and IDEs.
+> Status: M8/M9 completed
 
-### M8 · Client Integrations
-- 💭 Claude Desktop config guide + auto-installer
-- 💭 Cursor extension
+### M8 · Client Integrations ✅
+- ✅ Claude Desktop auto-installer (`ClaudeDesktopInstaller`)
+  - Cross-platform config path resolution (Windows / macOS / Linux)
+  - `install()` / `uninstall()` — merges into existing config without overwriting other servers
+- ✅ Cursor installer (`CursorInstaller`)
+  - Global (`~/.cursor/mcp.json`) and project (`.cursor/mcp.json`) scopes
+  - `install()` / `uninstall()` with scope selection
+- ✅ `ConfigGenerator` — generates `mcpServers` entries for stdio and HTTP modes
+- ✅ `weave-link install <claude|cursor>` CLI command
+- ✅ `weave-link uninstall <claude|cursor>` CLI command
 - 💭 VS Code extension with WeaveGraph sidebar
 - 💭 Cline plugin
 
-### M9 · Remote WeaveLink
-- 💭 HTTP/SSE transport (remote MCP server)
-- 💭 Auth via API keys
-- 💭 Docker image: `ghcr.io/openweave/weave-link`
+### M9 · Remote WeaveLink ✅
+- ✅ `HttpTransport` — HTTP server using zero runtime dependencies (Node built-ins only)
+  - `GET /` server info · `GET /health` liveness · `GET /tools` list
+  - `POST /tools/call` invoke tools · `GET /events` SSE stream
+  - CORS headers for dashboard / webview access
+- ✅ `AuthManager` — API key auth via `Authorization: Bearer` or `X-API-Key`
+  - Enable/disable at runtime, add/remove keys dynamically
+- ✅ `generateApiKey()` — crypto-random key generator
+- ✅ `weave-link start` CLI with `--mode http|stdio`, `--port`, `--host`, `--no-auth`
+- ✅ `weave-link keygen` and `weave-link status` CLI subcommands
+- ✅ Unit tests (82 tests passing across M8 + M9 + original 29)
+  - AuthManager: 10 tests
+  - generateApiKey: 4 tests
+  - HttpTransport (no auth): 13 tests
+  - HttpTransport (with auth): 4 tests
+  - HttpTransport SSE: 1 test
+  - ConfigGenerator: 7 tests
+  - ClaudeDesktopInstaller: 7 tests
+  - CursorInstaller: 7 tests
+  - Integration: 1 test
+- ✅ Docker image: `ghcr.io/openweave/weave-link`
+  - `packages/weave-link/Dockerfile` — multi-stage build (builder → production, node:22-alpine)
+  - `.dockerignore` — repo-root context, excludes unused packages/apps
+  - `.github/workflows/docker.yml` — builds `linux/amd64` + `linux/arm64`, pushes to GHCR on `main` and semver tags
 
 ---
 
-## PHASE 4 — Dashboard & Visualization `v0.4.0` 🔜
+## PHASE 4 — Dashboard & Visualization `v0.4.0` ✅
 
 > Goal: Visual interface for graph, milestones, and session management.
+> Status: M10 completed
 
-### M10 · Weave Dashboard
-- 💭 Interactive graph visualization (D3 / Cytoscape)
-- 💭 Milestone progress board (Kanban view)
-- 💭 Error registry browser
-- 💭 Session comparison (diff two `chat_id` graphs)
+### M10 · Weave Dashboard ✅
+- ✅ `WeaveDashboardClient` — fetch-based HTTP client wrapping the WeaveLink REST API
+  - `getHealth()`, `getServerInfo()`, `listTools()`, `callTool()`, `getSnapshot()`, `listSessions()`, `queryGraph()`
+  - `DashboardApiError` + `NetworkError` typed error classes
+  - Bearer token (`Authorization`) and `X-API-Key` auth support
+  - SSE event stream via `openEventStream()`
+- ✅ `SessionDiff` — pure diff of two GraphSnapshots (added/removed/changed nodes + edges)
+  - `diff(sessionA, snapA, sessionB, snapB)` → `GraphDiff`
+  - `summarize(diff)` → human-readable change summary with similarity %
+- ✅ `GraphLayoutEngine` — Fruchterman–Reingold force-directed layout (pure TS, no DOM)
+  - Configurable canvas size, iterations, spring constant, cooling rate, gravity
+  - `validateBounds(layout, w, h)` utility
+- ✅ `MilestoneBoard` — pure data transformation: milestones → Kanban columns
+  - `toColumns()`, `toCard()`, `stats()`, `sortByPriority()`
+  - Excludes BLOCKED / DEFERRED from overall progress calculation
+- ✅ `ErrorRegistry` — extracts ERROR nodes, cross-references CORRECTS edges
+  - `build()`, `filter()` (showCorrected + searchQuery), `stats()`
+- ✅ `GraphRenderer` — D3-powered SVG graph with zoom, drag, hover tooltips, coloured node types
+- ✅ Dashboard SPA (`index.html` + `src/app.ts` + `src/main.ts`)
+  - 4 views: Graph 🧠 · Milestones 🗺 · Errors ⚠️ · Session Diff 🔀
+  - Vite dev server with proxy to WeaveLink HTTP server (`/api → localhost:3000`)
+  - Dark theme UI with GitHub-style colour tokens
+- ✅ Unit tests (60 tests passing)
+  - WeaveDashboardClient: 12 tests
+  - SessionDiff: 12 tests
+  - GraphLayoutEngine: 10 tests
+  - MilestoneBoard: 13 tests
+  - ErrorRegistry: 13 tests
 
 ---
 
-## PHASE 5 — WeaveCheck Eval Suite `v0.5.0` 🔜
+## PHASE 5 — WeaveCheck Eval Suite `v0.5.0` ✅
 
 > Goal: Measurable, reproducible quality metrics for the agent.
+> Status: M11 completed
 
-### M11 · Evaluation Framework
-- 💭 Orphan rate KPI (automated)
-- 💭 Context coherence KPI (LLM-as-judge)
-- 💭 Error non-repetition rate (red-team suite)
-- 💭 Milestone adherence KPI
-- 💭 Context compression quality KPI
+### M11 · Evaluation Framework ✅
+- ✅ `OrphanRateEvaluator` — scores unused code rate; severity-weighted (CRITICAL=3×, HIGH=2×)
+- ✅ `GraphCoherenceEvaluator` — 4 sub-checks: dangling edges, isolated nodes, error correction coverage, density
+- ✅ `ErrorRepetitionEvaluator` — cross-session error label normalisation; `excludeCorrected` option
+- ✅ `MilestoneAdherenceEvaluator` — completion rate + hour accuracy; BLOCKED/DEFERRED excluded
+- ✅ `CompressionQualityEvaluator` — preservation of high-freq nodes + archival rate + size reduction
+- ✅ `WeaveCheckRunner` — orchestrates all 5 evaluators, produces `EvalReport` with overall score
+  - `run(inputs)` — skips evaluators with no input; catches evaluator errors gracefully
+  - `formatReport(report)` — human-readable CLI/log output
+  - `skip` option to exclude specific KPI IDs
+- ✅ Zero runtime dependencies — self-contained input type mirrors from other packages
+- ✅ Unit tests (60 tests passing)
+  - OrphanRateEvaluator: 10 tests
+  - GraphCoherenceEvaluator: 10 tests
+  - ErrorRepetitionEvaluator: 10 tests
+  - MilestoneAdherenceEvaluator: 10 tests
+  - CompressionQualityEvaluator: 10 tests
+  - WeaveCheckRunner: 10 tests
+
+---
+
+## PHASE 6 — Agent Core `v0.6.0` ✅
+
+> Goal: A standalone, testable OpenWeave agent that orchestrates all packages
+> through a ReAct loop with persistent sessions and context compression.
+> Status: M12 completed
+
+### M12 · Agent Core ✅
+- ✅ `types.ts` — Self-contained type definitions: `AgentMessage`, `PendingToolCall`, `ToolResult`, `TokenUsage`, `CompressionPolicy`, `SessionInfo`, `AgentConfig`, `LLMClient` interface, `AgentEvent`
+- ✅ `SystemPromptBuilder` — Composes the full system prompt with live graph context injection
+  - `OPENWEAVE_BASE_PROMPT` — Persona, ReAct style, knowledge-graph semantics, tool usage policy
+  - `build({ session, graphContext, extraInstructions })` — Full prompt with optional sections
+  - `buildMinimal(sessionId)` — Lightweight prompt for subprocess/stdio use
+- ✅ `ToolRegistry` — Registers 7 canonical OpenWeave tools with JSON-Schema definitions
+  - `save_node`, `query_graph`, `suppress_error`, `update_roadmap`, `get_session_context`, `get_next_action`, `list_orphans`
+  - `register()` — add custom tools at runtime
+  - `bindHandler()` — replace noop handler with a real WeaveLink-connected implementation
+  - `execute()` — typed dispatch with error capture; returns `ToolResult`
+- ✅ `ContextManager` — Token budget tracker with lightweight char-based estimation
+  - `estimateTokens()` / `estimateMessageTokens()` — zero-dep approximation
+  - `shouldCompress()` — triggers at configurable threshold (default 75%)
+  - `compress()` — archives low-priority tail messages, accumulates archived-token ledger
+  - `reset()` — clears archived state on session start
+- ✅ `SessionLifecycle` — JSON-based session persistence to `.weave-sessions/`
+  - `init()` — create or resume session
+  - `save()` / `load()` — roundtrip `SessionInfo` as JSON
+  - `recordTurn()` / `recordCompression()` — incremental counters
+  - `close()` — marks session as closed
+- ✅ `AgentCore` — Main ReAct orchestrator (Pattern: Thought → Action → Observation → repeat)
+  - Injectable `LLMClient` interface for test mocking and provider swapping
+  - `init()` — boots session, builds system prompt, emits `session:started`
+  - `run(userMessage, options?)` — ReAct loop with configurable `maxTurns`
+  - `close()` — graceful shutdown, persists closed status
+  - `on()` / `off()` — event bus for `session:*`, `turn:*`, `tool:*`, `context:compressed`
+- ✅ `main.ts` CLI — `agent-core start|status|sessions` REPL with stdin/stdout
+- ✅ Unit tests (61 tests passing)
+  - SystemPromptBuilder: 10 tests
+  - ToolRegistry: 14 tests
+  - ContextManager: 13 tests
+  - SessionLifecycle: 10 tests
+  - AgentCore: 14 tests
 
 ---
 
 ## How to Influence the Roadmap
 
-- 💬 Open a [Discussion](https://github.com/openweave/openweave/discussions)
-- 🐛 File an [Issue](https://github.com/openweave/openweave/issues)
+- 💬 Open a [Discussion](https://github.com/lemur-bookstores/openweave/discussions)
+- 🐛 File an [Issue](https://github.com/lemur-bookstores/openweave/issues)
 - 🗳️ Vote on existing issues with 👍
 - 📣 Join [Discord](https://discord.gg/openweave) `#roadmap` channel

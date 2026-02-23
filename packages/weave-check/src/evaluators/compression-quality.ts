@@ -20,7 +20,7 @@
  *   FAIL  <  55
  */
 
-import { KPIResult, CompressionSnapshot, GraphNode } from '../types';
+import { KPIResult, CompressionSnapshot } from '../types';
 
 export interface CompressionQualityConfig {
   passThreshold?: number; // default 75

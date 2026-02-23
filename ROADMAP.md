@@ -408,7 +408,7 @@ Leer docs\SKILL-package-setup.md
 > una búsqueda retroactiva sobre toda la historia del grafo, creando conexiones
 > sin importar cuándo fue creado el nodo histórico — igual que las sinapsis
 > cerebrales que forman nuevas rutas a través del tiempo.
-> Status: M16 completed
+> Status: M16–M17 completed
 
 ### M16 · Retroactive Linking — Keyword Phase ✅
 - ✅ `SynapticEngine` class en `packages/weave-graph/src/synaptic-engine.ts`
@@ -426,15 +426,18 @@ Leer docs\SKILL-package-setup.md
 - ✅ Unit tests (31 tests): `tokenize` (8) · `jaccardSimilarity` (5) · config (2) · `linkRetroactively` (12) · integration con `ContextGraphManager` (4)
 - ✅ Workspace: 607 tests totales — cero regresiones
 
-### M17 · Hebbian Strengthening + Temporal Decay 🔜
-- 🔜 `HebbianWeights` class en `packages/weave-graph/src/hebbian-weights.ts`
-  - `strengthen(edgeId, graph)` — cuando dos nodos se co-activan (se recuperan juntos), `edge.weight += WEAVE_HEBBIAN_STRENGTH` (default `0.1`)
-  - `decay(graph)` — en cada ciclo, edges no tocados bajan `edge.weight × WEAVE_DECAY_RATE` (default `0.99`)
-  - `prune(graph, minWeight)` — elimina edges cuyo weight cae por debajo de `minWeight` (default `0.05`)
-- 🔜 `WeaveGraph.queryNodesByLabel()` y `queryNodesByType()` invocan `strengthen()` automáticamente en los edges de los resultados
-- 🔜 `edge.weight` ya existe en el tipo `Edge` — zero breaking changes
-- 🔜 Configurable via env vars: `WEAVE_HEBBIAN_STRENGTH`, `WEAVE_DECAY_RATE`, `WEAVE_PRUNE_THRESHOLD`
-- 🔜 Unit tests: strengthen en co-activación, decay progresivo, prune de edges débiles, no-op cuando weight ya es máximo
+### M17 · Hebbian Strengthening + Temporal Decay ✅
+- ✅ `HebbianWeights` class en `packages/weave-graph/src/hebbian-weights.ts`
+  - `strengthen(edgeId, graph)` — `edge.weight += hebbianStrength` (default `0.1`), techo en `maxWeight` (default `5.0`)
+  - `strengthenCoActivated(nodeIds, graph)` — batch: refuerza todos los edges entre nodos co-activados
+  - `decay(graph)` — `edge.weight × decayRate` (default `0.99`) por ciclo; retorna count de edges procesados
+  - `prune(graph, minWeight?)` — elimina edges cuyo weight < `pruneThreshold` (default `0.05`); retorna count eliminados
+- ✅ `HebbianGraph` interface — evita dependencia circular con `ContextGraphManager`
+- ✅ `ContextGraphManager.setHebbianWeights()` hook — zero breaking changes
+- ✅ `queryNodesByLabel()` y `queryNodesByType()` invocan `strengthenCoActivated()` automáticamente sobre los nodos resultado
+- ✅ `edge.weight` ya existía en el tipo `Edge` — zero schema changes
+- ✅ Unit tests (25 tests): config (2) · `strengthen` (5) · `strengthenCoActivated` (4) · `decay` (5) · `prune` (5) · integration con `ContextGraphManager` (4)
+- ✅ Workspace: 632 tests totales — cero regresiones
 
 ### M18 · Embedding-Based Retroactive Linking 💭
 - 💭 Extensión de `SynapticEngine` con modo embedding (`useEmbeddings: true`)

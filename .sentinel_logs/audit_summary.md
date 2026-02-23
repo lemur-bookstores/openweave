@@ -16,11 +16,11 @@ infrastructure/configuration.
 
 The most critical findings are:
 
-| ID | Severity | Title |
-|----|----------|-------|
-| VULN-009 | 🔴 HIGH | Authentication disabled by default in HttpTransport |
-| VULN-002 | 🔴 HIGH | Missing runtime input validation in tool handlers |
-| VULN-005 | 🔴 HIGH | Stored prompt injection via graph node content |
+|    ID    |  Severity  |   Title  |
+|----------|------------|----------|
+| VULN-009 | 🔴 HIGH   | Authentication disabled by default in HttpTransport |
+| VULN-002 | 🔴 HIGH   | Missing runtime input validation in tool handlers |
+| VULN-005 | 🔴 HIGH   | Stored prompt injection via graph node content |
 | VULN-010 | 🟠 MEDIUM | Unbounded request body — Denial of Service |
 | VULN-011 | 🟠 MEDIUM | Unbounded SSE clients — memory exhaustion |
 | VULN-008 | 🟠 MEDIUM | CORS wildcard `*` enabled by default |
@@ -28,10 +28,10 @@ The most critical findings are:
 | VULN-004 | 🟠 MEDIUM | Missing `chat_id` format validation (path traversal) |
 | VULN-012 | 🟠 MEDIUM | Session file path traversal via `sessionId` |
 | VULN-001 | 🟡 LOW-MEDIUM | Raw tool-arg logging — information disclosure |
-| VULN-006 | 🟡 LOW | System prompt publicly exported |
-| VULN-007 | 🟡 LOW | Empty `.env.example` — no secret documentation |
-| VULN-013 | 🟡 LOW | Biased modulo in `generateApiKey()` |
-| VULN-014 | 🟡 LOW | `.sentinel_logs/` not in `.gitignore` |
+| VULN-006 | 🟡 LOW    | System prompt publicly exported |
+| VULN-007 | 🟡 LOW    | Empty `.env.example` — no secret documentation |
+| VULN-013 | 🟡 LOW    | Biased modulo in `generateApiKey()` |
+| VULN-014 | 🟡 LOW    | `.sentinel_logs/` not in `.gitignore` |
 
 ---
 
@@ -63,8 +63,8 @@ Internet
   ▼
 ╔═══════════════════════════════════╗
 ║  HttpTransport (port 3001)        ║  ← VULN-008 (CORS *), VULN-010 (no body limit)
-║    GET  /                  publik  ║
-║    GET  /health            publik  ║
+║    GET  /                  publik ║
+║    GET  /health            publik ║
 ║    GET  /tools             auth   ║  ← VULN-009 (auth OFF by default)
 ║    POST /tools/call        auth   ║  ← VULN-009, VULN-002, VULN-003, VULN-004
 ║    GET  /events            auth   ║  ← VULN-011 (unlimited SSE clients)

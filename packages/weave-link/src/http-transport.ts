@@ -35,6 +35,12 @@ interface SSEClient {
   res: ServerResponse;
 }
 
+/** Maximum number of concurrent SSE clients (VULN-011) */
+const MAX_SSE_CLIENTS = 100;
+
+/** Maximum request body size in bytes — 1 MB (VULN-010) */
+const MAX_BODY_BYTES = 1_048_576;
+
 // ──────────────────────────────────────────────────────────
 // WeaveLink HTTP Transport
 // ──────────────────────────────────────────────────────────
@@ -53,11 +59,13 @@ export class HttpTransport {
     config?: HttpTransportConfig
   ) {
     this.weaveLinkServer = weaveLinkServer || new WeaveLinkServer();
-    this.auth = auth || new AuthManager({ enabled: false });
+    // VULN-009: auth is enabled by default — callers must explicitly disable it for local stdio use
+    this.auth = auth || new AuthManager({ enabled: true });
     this.config = {
       port: config?.port ?? 3001,
       host: config?.host ?? '127.0.0.1',
-      cors: config?.cors ?? true,
+      // VULN-008: CORS off by default — callers must opt-in with a specific origin
+      cors: config?.cors ?? false,
       verbose: config?.verbose ?? false,
     };
   }
@@ -69,6 +77,14 @@ export class HttpTransport {
    */
   async start(): Promise<void> {
     await this.weaveLinkServer.initialize();
+
+    // VULN-009: refuse to start if auth is on but no keys are configured
+    if (this.auth.isEnabled() && this.auth.getKeyCount() === 0) {
+      throw new Error(
+        '[WeaveLink] Cannot start HTTP server: auth is enabled but no API keys are configured. ' +
+        'Provide at least one key via AuthManager or set WEAVE_API_KEY.'
+      );
+    }
 
     return new Promise((resolve, reject) => {
       this.server = createServer((req, res) => this.dispatch(req, res));
@@ -211,11 +227,23 @@ export class HttpTransport {
         this.json(res, 200, result);
       })
       .catch((err) => {
-        this.json(res, 500, { error: `Internal error: ${(err as Error).message}` });
+        const e = err as Error & { statusCode?: number };
+        if (e.statusCode === 413) {
+          this.json(res, 413, { error: 'Payload too large — request body must not exceed 1 MB' });
+        } else {
+          this.json(res, 500, { error: `Internal error: ${e.message}` });
+        }
       });
   }
 
   private handleSSE(req: IncomingMessage, res: ServerResponse): void {
+    // VULN-011: cap concurrent SSE connections to prevent memory exhaustion
+    if (this.sseClients.size >= MAX_SSE_CLIENTS) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'SSE connection limit reached — try again later' }));
+      return;
+    }
+
     const clientId = `client-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
     res.writeHead(200, {
@@ -267,10 +295,22 @@ export class HttpTransport {
 
   // ── Utility ───────────────────────────────────────────────
 
+  // VULN-010: enforce a 1 MB body limit to prevent memory exhaustion DoS
   private readBody(req: IncomingMessage): Promise<string> {
     return new Promise((resolve, reject) => {
       const chunks: Buffer[] = [];
-      req.on('data', (chunk: Buffer) => chunks.push(chunk));
+      let totalBytes = 0;
+
+      req.on('data', (chunk: Buffer) => {
+        totalBytes += chunk.byteLength;
+        if (totalBytes > MAX_BODY_BYTES) {
+          req.destroy();
+          const err = Object.assign(new Error('Payload too large'), { statusCode: 413 });
+          return reject(err);
+        }
+        chunks.push(chunk);
+      });
+
       req.on('end', () => resolve(Buffer.concat(chunks).toString('utf-8')));
       req.on('error', reject);
     });

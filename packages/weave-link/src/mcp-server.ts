@@ -16,6 +16,62 @@ import { ALL_TOOLS, getTool } from "./tools";
  * WeaveLink MCP Server
  * Implements Model Context Protocol for OpenWeave
  */
+
+// ── Security helpers (VULN-002, VULN-004) ────────────────────────────────────
+
+const SAFE_ID_RE = /^[\w\-]{1,128}$/;
+const ALLOWED_NODE_TYPES = new Set([
+  'CONCEPT', 'DECISION', 'MILESTONE', 'ERROR', 'CORRECTION', 'CODE_ENTITY',
+]);
+
+function validateIdentifier(value: unknown, fieldName: string): string | null {
+  if (typeof value !== 'string' || !SAFE_ID_RE.test(value)) {
+    return `${fieldName} must be 1–128 alphanumeric/hyphen/underscore characters`;
+  }
+  return null;
+}
+
+function validateSaveNodeArgs(args: Record<string, unknown>): string | null {
+  const idErr =
+    validateIdentifier(args.chat_id, 'chat_id') ??
+    validateIdentifier(args.node_id, 'node_id');
+  if (idErr) return idErr;
+
+  if (typeof args.node_label !== 'string' || args.node_label.trim().length === 0) {
+    return 'node_label must be a non-empty string';
+  }
+  if (args.node_label.length > 1024) {
+    return 'node_label must not exceed 1024 characters';
+  }
+  if (!ALLOWED_NODE_TYPES.has(String(args.node_type))) {
+    return `node_type must be one of: ${[...ALLOWED_NODE_TYPES].join(', ')}`;
+  }
+  if (args.frequency !== undefined) {
+    const f = Number(args.frequency);
+    if (!Number.isFinite(f) || f < 1 || f > 10_000) {
+      return 'frequency must be a number between 1 and 10000';
+    }
+  }
+  if (args.metadata !== null && args.metadata !== undefined) {
+    if (typeof args.metadata !== 'object' || Array.isArray(args.metadata)) {
+      return 'metadata must be a plain object';
+    }
+    const meta = args.metadata as Record<string, unknown>;
+    const keys = Object.keys(meta);
+    if (keys.length > 20) return 'metadata must not have more than 20 keys';
+    for (const key of keys) {
+      if (key.startsWith('__')) return `metadata key '${key}' is not allowed`;
+      if (typeof meta[key] !== 'string' && typeof meta[key] !== 'number' && typeof meta[key] !== 'boolean') {
+        return `metadata['${key}'] must be a string, number or boolean`;
+      }
+      if (typeof meta[key] === 'string' && (meta[key] as string).length > 512) {
+        return `metadata['${key}'] must not exceed 512 characters`;
+      }
+    }
+  }
+  return null;
+}
+
 export class WeaveLinkServer {
   private config: MCPServerConfig;
   private sessions: Map<string, unknown> = new Map();
@@ -62,7 +118,8 @@ export class WeaveLinkServer {
     toolName: string,
     args: Record<string, unknown>
   ): Promise<MCPResponse<unknown>> {
-    console.log(`[${this.config.name}] Executing tool: ${toolName}`, args);
+    // VULN-001: log only a safe summary — never raw args (may contain PII or secrets)
+    console.log(`[${this.config.name}] Executing tool: ${toolName} | chat_id: ${String(args.chat_id ?? '—')}`);
 
     // Route to appropriate handler
     switch (toolName) {
@@ -90,12 +147,13 @@ export class WeaveLinkServer {
    */
   private async handleSaveNode(args: SaveNodeArgs): Promise<MCPResponse<unknown>> {
     try {
-      const { chat_id, node_id, node_label, node_type, metadata, frequency } = args;
-
-      // Validate required fields
-      if (!chat_id || !node_id || !node_label || !node_type) {
-        return this.error("Missing required fields: chat_id, node_id, node_label, node_type");
+      // VULN-002: runtime validation before any type cast or storage
+      const validationError = validateSaveNodeArgs(args as unknown as Record<string, unknown>);
+      if (validationError) {
+        return this.error(`Validation error: ${validationError}`);
       }
+
+      const { chat_id, node_id, node_label, node_type, metadata, frequency } = args;
 
       // In a real implementation, this would save to the graph
       // For now, store in session cache

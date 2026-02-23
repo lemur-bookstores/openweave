@@ -140,11 +140,22 @@ export class AuthManager {
 }
 
 /**
- * Generate a secure random API key.
+ * Generate a secure random API key using rejection sampling to avoid modulo bias.
+ * (VULN-013: previous implementation had ~3% bias for the first 8 characters)
  */
 export function generateApiKey(length = 32): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => chars[b % chars.length]).join('');
+  // 256 - (256 % 62) = 248 — the largest multiple of 62 that fits in a byte
+  const maxUnbiased = 256 - (256 % chars.length);
+  let result = '';
+  while (result.length < length) {
+    const bytes = new Uint8Array(length * 2);
+    crypto.getRandomValues(bytes);
+    for (const b of bytes) {
+      if (b < maxUnbiased && result.length < length) {
+        result += chars[b % chars.length];
+      }
+    }
+  }
+  return result;
 }

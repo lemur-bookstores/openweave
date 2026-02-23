@@ -4,7 +4,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "allowImportingTsExtensions": false,
-    "module": "ESNext"
+    "module": "ESNext",
+    "paths": { "@openweave/*": ["../../packages/*/dist"] }
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules", "**/*.test.ts"]

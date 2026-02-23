@@ -16,7 +16,8 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
+import { IWeaveProvider } from '@openweave/weave-provider';
 import { SessionInfo, SessionStatus } from './types.js';
 
 // ──────────────────────────────────────────────────────────
@@ -26,10 +27,22 @@ import { SessionInfo, SessionStatus } from './types.js';
 export class SessionLifecycle {
   private persistenceDir: string;
   private sessionsDir: string;
+  /** Optional async provider — when set, async methods route through it. */
+  private provider: IWeaveProvider<SessionInfo> | null;
 
-  constructor(persistenceDir: string = '.weave-sessions') {
+  /**
+   * @param persistenceDir Root directory for file-based storage (default).
+   * @param provider       Optional IWeaveProvider for storage-agnostic persistence.
+   *                       When provided, `initAsync` / `saveAsync` / `loadAsync`
+   *                       use it instead of the file system.
+   */
+  constructor(
+    persistenceDir: string = '.weave-sessions',
+    provider?: IWeaveProvider<SessionInfo>
+  ) {
     this.persistenceDir = persistenceDir;
     this.sessionsDir = join(persistenceDir, 'sessions');
+    this.provider = provider ?? null;
   }
 
   // ── Init ──────────────────────────────────────────────────
@@ -136,7 +149,9 @@ export class SessionLifecycle {
   // ── Internal helpers ──────────────────────────────────────
 
   private sessionPath(sessionId: string): string {
-    return join(this.sessionsDir, `${sessionId}.session.json`);
+    // VULN-012: strip any directory components to prevent path traversal
+    const safe = basename(sessionId);
+    return join(this.sessionsDir, `${safe}.session.json`);
   }
 
   private ensureDir(): void {
@@ -147,5 +162,73 @@ export class SessionLifecycle {
 
   getPersistenceDir(): string {
     return this.persistenceDir;
+  }
+
+  // ── Async provider-based API ──────────────────────────────────────────────
+
+  /**
+   * Session key convention: `session:<sessionId>`
+   */
+  private sessionKey(sessionId: string): string {
+    return `session:${sessionId}`;
+  }
+
+  /**
+   * Async variant of `init` — routes through the injected provider if present,
+   * otherwise falls back to the sync file-based implementation.
+   */
+  async initAsync(sessionId: string, chatId: string): Promise<SessionInfo> {
+    if (this.provider) {
+      const existing = await this.provider.get(this.sessionKey(sessionId));
+      if (existing) {
+        const resumed: SessionInfo = { ...existing, lastActiveAt: new Date().toISOString(), status: 'active' };
+        await this.provider.set(this.sessionKey(sessionId), resumed);
+        return resumed;
+      }
+      const info: SessionInfo = {
+        sessionId, chatId,
+        startedAt: new Date().toISOString(),
+        lastActiveAt: new Date().toISOString(),
+        status: 'active',
+        turnCount: 0, toolCallCount: 0, compressionCount: 0,
+      };
+      await this.provider.set(this.sessionKey(sessionId), info);
+      return info;
+    }
+    return this.init(sessionId, chatId);
+  }
+
+  /** Async variant of `save` — routes through provider if present. */
+  async saveAsync(info: SessionInfo): Promise<void> {
+    if (this.provider) {
+      await this.provider.set(this.sessionKey(info.sessionId), info);
+      return;
+    }
+    this.save(info);
+  }
+
+  /** Async variant of `load` — routes through provider if present. */
+  async loadAsync(sessionId: string): Promise<SessionInfo | null> {
+    if (this.provider) {
+      return this.provider.get(this.sessionKey(sessionId));
+    }
+    return this.load(sessionId);
+  }
+
+  /** Async variant of `listSessionIds` — routes through provider if present. */
+  async listSessionIdsAsync(): Promise<string[]> {
+    if (this.provider) {
+      const keys = await this.provider.list('session:');
+      return keys.map((k) => k.replace(/^session:/, ''));
+    }
+    return this.listSessionIds();
+  }
+
+  /** Close the provider if one is configured. */
+  async closeProvider(): Promise<void> {
+    if (this.provider) {
+      await this.provider.close();
+      this.provider = null;
+    }
   }
 }

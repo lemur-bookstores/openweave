@@ -1,6 +1,6 @@
 {
   "name": "@openweave/agent-core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "OpenWeave Agent Core — ReAct orchestrator with tool registry, context management and session lifecycle",
   "private": true,
   "license": "MIT",
@@ -45,6 +45,7 @@
     "@openweave/weave-link": "workspace:*",
     "@openweave/weave-path": "workspace:*",
     "@openweave/weave-lint": "workspace:*",
-    "@openweave/weave-check": "workspace:*"
+    "@openweave/weave-check": "workspace:*",
+    "@openweave/weave-provider": "workspace:*"
   }
 }

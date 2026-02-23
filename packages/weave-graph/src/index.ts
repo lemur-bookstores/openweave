@@ -2,6 +2,8 @@ import { Node, Edge, NodeType, EdgeType, GraphSnapshot } from "./types";
 import { NodeBuilder } from "./node";
 import { EdgeBuilder } from "./edge";
 import { CompressionManager, ErrorSuppression } from "./compression";
+import { SynapticEngine } from "./synaptic-engine";
+import { HebbianWeights } from "./hebbian-weights";
 
 /**
  * ContextGraphManager
@@ -19,6 +21,8 @@ export class ContextGraphManager {
   private version: string = "0.1.0";
   private createdAt: Date;
   private updatedAt: Date;
+  private synapticEngine?: SynapticEngine;
+  private hebbianWeights?: HebbianWeights;
 
   constructor(chatId: string, compressionThreshold?: number) {
     this.chatId = chatId;
@@ -35,19 +39,75 @@ export class ContextGraphManager {
   }
 
   /**
-   * Add a node to the graph
+   * Attach a SynapticEngine to this graph. Once set, every subsequent
+   * `addNode()` call will automatically trigger retroactive linking.
+   */
+  setSynapticEngine(engine: SynapticEngine): void {
+    this.synapticEngine = engine;
+  }
+
+  /**
+   * Attach a HebbianWeights instance to this graph. Once set,
+   * `queryNodesByLabel()` and `queryNodesByType()` will automatically
+   * strengthen edges between co-activated result nodes.
+   */
+  setHebbianWeights(hw: HebbianWeights): void {
+    this.hebbianWeights = hw;
+  }
+
+  /**
+   * Add a node to the graph.
+   * If a SynapticEngine is attached, retroactive linking is performed
+   * immediately after the node is indexed.
    */
   addNode(node: Node): Node {
     this.nodes.set(node.id, node);
-    
+
     // Index by label for keyword search
     const labelKey = node.label.toLowerCase();
     if (!this.nodesByLabel.has(labelKey)) {
       this.nodesByLabel.set(labelKey, new Set());
     }
     this.nodesByLabel.get(labelKey)!.add(node.id);
-    
+
     this.updatedAt = new Date();
+
+    // Retroactive linking — fires only when a SynapticEngine is attached
+    if (this.synapticEngine) {
+      this.synapticEngine.linkRetroactively(node, this);
+    }
+
+    return node;
+  }
+
+  /**
+   * Add a node to the graph and run embedding-based retroactive linking
+   * (async). If the attached SynapticEngine has an `embeddingService`,
+   * cosine similarity is used instead of Jaccard keyword overlap.
+   *
+   * If no SynapticEngine is attached, behaves identically to `addNode()`.
+   * If a SynapticEngine is attached but has no embedding service, the
+   * keyword-based path runs (same as `addNode()`).
+   *
+   * @returns The added node.
+   */
+  async addNodeAsync(node: Node): Promise<Node> {
+    this.nodes.set(node.id, node);
+
+    // Index by label
+    const labelKey = node.label.toLowerCase();
+    if (!this.nodesByLabel.has(labelKey)) {
+      this.nodesByLabel.set(labelKey, new Set());
+    }
+    this.nodesByLabel.get(labelKey)!.add(node.id);
+
+    this.updatedAt = new Date();
+
+    // Embedding-based retroactive linking (falls back to keyword if no embeddings)
+    if (this.synapticEngine) {
+      await this.synapticEngine.linkRetroactivelyEmbedding(node, this);
+    }
+
     return node;
   }
 
@@ -197,14 +257,34 @@ export class ContextGraphManager {
       }
     }
 
-    return results.sort((a, b) => (b.frequency ?? 0) - (a.frequency ?? 0));
+    const sorted = results.sort((a, b) => (b.frequency ?? 0) - (a.frequency ?? 0));
+
+    // Hebbian strengthening — reinforce edges between co-activated nodes
+    if (this.hebbianWeights && sorted.length >= 2) {
+      this.hebbianWeights.strengthenCoActivated(
+        sorted.map((n) => n.id),
+        this
+      );
+    }
+
+    return sorted;
   }
 
   /**
    * Query nodes by type
    */
   queryNodesByType(type: NodeType): Node[] {
-    return Array.from(this.nodes.values()).filter((node) => node.type === type);
+    const results = Array.from(this.nodes.values()).filter((node) => node.type === type);
+
+    // Hebbian strengthening — reinforce edges between co-activated nodes
+    if (this.hebbianWeights && results.length >= 2) {
+      this.hebbianWeights.strengthenCoActivated(
+        results.map((n) => n.id),
+        this
+      );
+    }
+
+    return results;
   }
 
   /**
@@ -410,5 +490,9 @@ export { NodeBuilder } from "./node";
 export { EdgeBuilder } from "./edge";
 export { CompressionManager, ErrorSuppression } from "./compression";
 export type { CompressionStats } from "./compression";
+export { SynapticEngine, tokenize, jaccardSimilarity, cosineSimilarity } from "./synaptic-engine";
+export type { SynapticOptions, SynapticGraph, SynapticEmbeddingService } from "./synaptic-engine";
+export { HebbianWeights } from "./hebbian-weights";
+export type { HebbianOptions, HebbianGraph } from "./hebbian-weights";
 
       

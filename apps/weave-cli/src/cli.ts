@@ -8,6 +8,9 @@ import { queryCommand } from './commands/query';
 import { orphansCommand } from './commands/orphans';
 import { errorsCommand } from './commands/errors';
 import { saveNodeCommand } from './commands/save-node';
+import { migrateCommand } from './commands/migrate';
+import { skillsCommand } from './commands/skills';
+import { toolsCommand } from './commands/tools';
 
 /**
  * Weave CLI - Main Entry Point
@@ -21,6 +24,9 @@ const commands: Record<string, CliCommand> = {
   orphans: orphansCommand,
   errors: errorsCommand,
   'save-node': saveNodeCommand,
+  migrate: migrateCommand,
+  skills: skillsCommand,
+  tools: toolsCommand,
 };
 
 function parseArgs(): CLIArgs {
@@ -74,6 +80,9 @@ Commands:
   orphans               Analyze code for unused exports
   errors                Show error registry
   save-node             Manually add a node to the graph
+  skills                Manage skill modules (list, enable, disable, info)
+  tools                 Manage external tool adapters (add, remove, list, info, test)
+  migrate               Migrate data between storage providers
 
 Global Options:
   --help, -h            Show this help message
@@ -96,7 +105,7 @@ Documentation: https://github.com/openweave/openweave
 }
 
 function showVersion(): void {
-  console.log('Weave CLI v0.1.0');
+  console.log('Weave CLI v1.0.0');
 }
 
 async function main(): Promise<void> {

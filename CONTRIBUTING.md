@@ -28,7 +28,7 @@ This isn't just what the agent enforces — it's how we build OpenWeave itself.
 ## 🛠️ Development Setup
 
 ```bash
-# Prerequisites: Node.js 18+, Python 3.11+, pnpm 8+
+# Prerequisites: Node.js ≥ 25.6.1, pnpm 10+, git-flow (recommended)
 
 git clone https://github.com/YOUR_FORK/openweave.git
 cd openweave
@@ -59,11 +59,78 @@ pnpm test
 
 ---
 
-## 🌿 Branch Naming
+## 🌿 Branching Strategy (GitFlow)
+
+OpenWeave follows the **GitFlow** branching model. We recommend installing the
+`git-flow` CLI extension to automate branch management.
+
+**Install git-flow:**
+```bash
+# macOS
+brew install git-flow-avh
+
+# Ubuntu / Debian
+apt install git-flow
+
+# Windows (via Chocolatey)
+choco install gitflow-avh
+```
+
+**Initialize in your fork (one-time):**
+```bash
+git flow init -d   # accepts all defaults: main / develop / feature• / release• / hotfix•
+```
+
+**Daily workflow:**
+```bash
+# Start a new feature
+git flow feature start my-feature
+
+# ... develop, commit ...
+
+# Finish and merge back into develop
+git flow feature finish my-feature
+
+# Create a release branch when ready
+git flow release start v1.0.0
+
+# Finish the release (merges into main + develop, creates tag)
+git flow release finish v1.0.0
+```
+
+> **No git-flow CLI?** No problem. Use equivalent manual commands:
+> ```bash
+> git checkout -b feature/my-feature develop
+> # ... develop, commit ...
+> git checkout develop && git merge --no-ff feature/my-feature
+> git branch -d feature/my-feature
+> ```
+
+**Branch hierarchy:**
 
 ```
-feat/short-description       # New feature
-fix/short-description        # Bug fix
+main          ← production-ready releases only (tagged vX.Y.Z)
+  └─ develop   ← integration branch, always deployable
+       ├─ feature/...    started from develop, merged back into develop
+       ├─ release/...    started from develop, merged into main + develop
+       └─ hotfix/...     started from main, merged into main + develop
+```
+
+---
+
+## 🌿 Branch Naming
+
+Branches follow GitFlow conventions. Use the `git flow` CLI when possible:
+
+```
+feature/short-description    # git flow feature start short-description
+release/vX.Y.Z               # git flow release start vX.Y.Z
+hotfix/short-description     # git flow hotfix start short-description
+```
+
+For non-GitFlow contributions (docs, tests, chores):
+
+```
 docs/short-description       # Documentation only
 refactor/short-description   # Code restructure, no behavior change
 test/short-description       # Adding or fixing tests

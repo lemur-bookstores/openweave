@@ -38,6 +38,70 @@ WeaveGraph manages all memory for an OpenWeave session:
 | `DEPENDS_ON` | A depends on B |
 | `BLOCKS` | A blocks B |
 
+---
+
+## SynapticEngine — Conexiones Neuronales Retroactivas
+
+El `SynapticEngine` (en desarrollo — M16) da a WeaveGraph su comportamiento neuronal.
+Cada nodo nuevo que entra al grafo es comparado contra **toda la historia**,
+sin importar cuándo fue creado el nodo existente.
+
+### Tres comportamientos (roadmap)
+
+| Comportamiento | Módulo | Descripción |
+|---|---|---|
+| **Retroactive Linking** | `synaptic-engine.ts` | Al insertar un nodo, descubre y crea edges con nodos históricos relevantes |
+| **Hebbian Strengthening** | `hebbian-weights.ts` | Edges cuyos nodos son recuperados juntos aumentan su peso (`+0.1`) |
+| **Temporal Decay** | `hebbian-weights.ts` | Edges inactivos se debilitan gradualmente (`× 0.99` por ciclo) |
+
+### Estructura de módulos (v0.8.0)
+
+```
+packages/weave-graph/src/
+├── index.ts               ← ContextGraphManager (existente)
+├── node.ts                ← NodeBuilder (existente)
+├── edge.ts                ← EdgeBuilder (existente)
+├── compression.ts         ← CompressionManager (existente)
+├── persistence.ts         ← PersistenceManager (existente)
+├── synaptic-engine.ts     ← Retroactive linking (M16 — en desarrollo)
+└── hebbian-weights.ts     ← Strengthening + decay (M17 — planificado)
+```
+
+### Umbrales por defecto
+
+| Variable de entorno | Default | Descripción |
+|---|---|---|
+| `WEAVE_SYNAPSE_THRESHOLD` | `0.72` | Similitud mínima para crear un edge retroactivo |
+| `WEAVE_SYNAPSE_MAX_CONNECTIONS` | `20` | Máximo de edges automáticos por nodo |
+| `WEAVE_HEBBIAN_STRENGTH` | `0.1` | Incremento de `edge.weight` por co-activación |
+| `WEAVE_DECAY_RATE` | `0.99` | Factor de decay aplicado por ciclo inactivo |
+| `WEAVE_PRUNE_THRESHOLD` | `0.05` | Weight mínimo antes de eliminar el edge |
+
+### Uso (preview API)
+
+```typescript
+import { SynapticEngine, ContextGraphManager, NodeBuilder } from "@openweave/weave-graph";
+
+const graph = new ContextGraphManager("chat_abc123");
+const synapse = new SynapticEngine({ threshold: 0.72, maxConnections: 20 });
+
+// Nodo histórico (creado hace un mes, ya en el grafo)
+graph.addNode(NodeBuilder.concept("TypeScript generics", "Parametric polymorphism"));
+
+// Nodo nuevo — SynapticEngine crea automáticamente el edge retroactivo
+const newNode = NodeBuilder.concept("Generic constraints en TS", "extends keyword");
+const newEdges = await synapse.linkRetroactively(newNode, graph);
+// → crea edge RELATES entre ambos nodos aunque el primero tenga 1 mes de antigüedad
+
+graph.addNode(newNode);
+console.log(`${newEdges.length} conexiones retroactivas creadas`);
+```
+
+> **Estado:** `SynapticEngine` está en desarrollo activo en la rama `feature/synaptic-engine`.
+> La API puede cambiar antes del release `v0.8.0`.
+
+---
+
 ## Quick Start
 
 ### TypeScript / Node.js

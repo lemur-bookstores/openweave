@@ -17,14 +17,17 @@ export const TOOL_SAVE_NODE: MCPTool = {
     properties: {
       chat_id: {
         type: "string",
-        description: "Session identifier (typically user/conversation ID)",
+        pattern: "^[\\w\\-]{1,128}$",
+        description: "Session identifier (alphanumeric + hyphens/underscores, max 128 chars)",
       },
       node_id: {
         type: "string",
-        description: "Unique identifier for the node within this session",
+        pattern: "^[\\w\\-]{1,128}$",
+        description: "Unique identifier for the node within this session (alphanumeric + hyphens/underscores, max 128 chars)",
       },
       node_label: {
         type: "string",
+        maxLength: 1024,
         description: "Human-readable label for the node",
       },
       node_type: {
@@ -34,11 +37,15 @@ export const TOOL_SAVE_NODE: MCPTool = {
       },
       metadata: {
         type: "object",
-        description: "Optional metadata (key-value pairs) to attach to the node",
+        additionalProperties: { type: "string", maxLength: 512 },
+        maxProperties: 20,
+        description: "Optional key/value string pairs (max 20 keys, 512 chars per value)",
       },
       frequency: {
         type: "number",
-        description: "Access frequency hint (0-100) for context compression prioritization",
+        minimum: 1,
+        maximum: 10000,
+        description: "Access frequency hint (1-10000) for context compression prioritization",
       },
     },
     required: ["chat_id", "node_id", "node_label", "node_type"],
@@ -57,10 +64,12 @@ export const TOOL_QUERY_GRAPH: MCPTool = {
     properties: {
       chat_id: {
         type: "string",
+        pattern: "^[\\w\\-]{1,128}$",
         description: "Session identifier",
       },
       query: {
         type: "string",
+        maxLength: 512,
         description: "Search query (supports keywords, labels, or partial matches)",
       },
       limit: {
@@ -84,18 +93,22 @@ export const TOOL_SUPPRESS_ERROR: MCPTool = {
     properties: {
       chat_id: {
         type: "string",
+        pattern: "^[\\w\\-]{1,128}$",
         description: "Session identifier",
       },
       node_id: {
         type: "string",
+        pattern: "^[\\w\\-]{1,128}$",
         description: "ID of the ERROR node to suppress",
       },
       error_label: {
         type: "string",
+        maxLength: 512,
         description: "Short label for the error",
       },
       description: {
         type: "string",
+        maxLength: 2048,
         description: "Description of the correction applied",
       },
     },

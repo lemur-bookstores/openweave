@@ -7,6 +7,7 @@ import { queryCommand } from './commands/query';
 import { orphansCommand } from './commands/orphans';
 import { errorsCommand } from './commands/errors';
 import { saveNodeCommand } from './commands/save-node';
+import { migrateCommand } from './commands/migrate';
 import { mkdirSync, rmSync, writeFileSync, existsSync } from 'fs';
 import { join } from 'path';
 
@@ -609,6 +610,7 @@ describe('Weave CLI - Command Tests', () => {
         orphansCommand,
         errorsCommand,
         saveNodeCommand,
+        migrateCommand,
       ];
 
       for (const cmd of commands) {
@@ -617,6 +619,86 @@ describe('Weave CLI - Command Tests', () => {
         expect(cmd.usage).toBeDefined();
         expect(cmd.execute).toBeDefined();
       }
+    });
+  });
+
+  // ── MigrateCommand ─────────────────────────────────────────────────────
+  describe('MigrateCommand', () => {
+    it('fails when source and destination are the same', async () => {
+      const result = await migrateCommand.execute({
+        command: 'migrate',
+        args: [],
+        flags: { from: 'json', to: 'json', 'data-dir': testDir },
+      });
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('differ');
+    });
+
+    it('reports nothing to migrate when source is empty', async () => {
+      // Create a valid .weave data dir (empty — no graph files)
+      const dataDir = join(testDir, 'empty-data');
+      mkdirSync(dataDir, { recursive: true });
+
+      const result = await migrateCommand.execute({
+        command: 'migrate',
+        args: [],
+        flags: { from: 'json', to: 'memory', 'data-dir': dataDir },
+      });
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Nothing to migrate');
+    });
+
+    it('migrates json → memory in dry-run mode', async () => {
+      const dataDir = join(testDir, 'json-src');
+      mkdirSync(dataDir, { recursive: true });
+      // Write a graph JSON file the JsonProvider can read
+      writeFileSync(
+        join(dataDir, 'graph__chat1.json'),
+        JSON.stringify({ nodes: {}, edges: {}, metadata: { chatId: 'chat1' } })
+      );
+
+      const result = await migrateCommand.execute({
+        command: 'migrate',
+        args: [],
+        flags: { from: 'json', to: 'memory', 'data-dir': dataDir, 'dry-run': true },
+      });
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('DRY RUN');
+      expect(result.message).toContain('Migrated:  1');
+    });
+
+    it('migrates json → memory (live)', async () => {
+      const dataDir = join(testDir, 'json-live');
+      mkdirSync(dataDir, { recursive: true });
+      writeFileSync(
+        join(dataDir, 'graph__chat2.json'),
+        JSON.stringify({ nodes: {}, edges: {}, metadata: { chatId: 'chat2' } })
+      );
+
+      const result = await migrateCommand.execute({
+        command: 'migrate',
+        args: [],
+        flags: { from: 'json', to: 'memory', 'data-dir': dataDir },
+      });
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('Migrated:  1');
+    });
+
+    it('rejects unknown provider names', async () => {
+      const result = await migrateCommand.execute({
+        command: 'migrate',
+        args: [],
+        flags: { from: 'unknowndb', to: 'memory', 'data-dir': testDir },
+      });
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('unknowndb');
+    });
+
+    it('has correct command metadata', () => {
+      expect(migrateCommand.name).toBe('migrate');
+      expect(migrateCommand.description).toContain('Migrate');
+      expect(migrateCommand.usage).toContain('weave migrate');
+      expect(migrateCommand.execute).toBeDefined();
     });
   });
 });

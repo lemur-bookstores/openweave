@@ -408,7 +408,7 @@ Leer docs\SKILL-package-setup.md
 > una búsqueda retroactiva sobre toda la historia del grafo, creando conexiones
 > sin importar cuándo fue creado el nodo histórico — igual que las sinapsis
 > cerebrales que forman nuevas rutas a través del tiempo.
-> Status: M16–M17 completed
+> Status: M16–M18 completed
 
 ### M16 · Retroactive Linking — Keyword Phase ✅
 - ✅ `SynapticEngine` class en `packages/weave-graph/src/synaptic-engine.ts`
@@ -439,14 +439,25 @@ Leer docs\SKILL-package-setup.md
 - ✅ Unit tests (25 tests): config (2) · `strengthen` (5) · `strengthenCoActivated` (4) · `decay` (5) · `prune` (5) · integration con `ContextGraphManager` (4)
 - ✅ Workspace: 632 tests totales — cero regresiones
 
-### M18 · Embedding-Based Retroactive Linking 💭
-- 💭 Extensión de `SynapticEngine` con modo embedding (`useEmbeddings: true`)
-  - Usa `@openweave/weave-embed` `EmbeddingService` — cosine similarity en lugar de keyword overlap
-  - Precisión superior para conceptos semánticamente similares con vocabulario diferente
-  - Opcional y opt-in: no rompe M16 ni añade deps obligatorias a `weave-graph`
-- 💭 `SynapticEngine.linkRetroactively()` acepta `embeddingService?: EmbeddingService` como parámetro
-- 💭 Benchmark: comparar recall de keyword vs embedding sobre grafos reales de sesiones
-- 💭 Unit tests: similitud semántica cross-vocabulario, fallback a keyword si embedding no disponible
+### M18 · Embedding-Based Retroactive Linking ✅
+- ✅ `SynapticEmbeddingService` interface (duck-typed) en `synaptic-engine.ts`
+  - `embed(text): Promise<{ embedding: number[] }>` — compatible con `EmbeddingService` de `@openweave/weave-embed`
+  - Zero dependencia en `weave-graph/package.json` — zero deps obligatorias
+- ✅ `cosineSimilarity(a, b): number` — cos θ = A·B / (|A|×|B|); exportado desde barrel
+- ✅ `SynapticOptions.embeddingService?: SynapticEmbeddingService` — inyección opcional
+- ✅ `SynapticEngine.hasEmbeddingService: boolean` — getter de estado
+- ✅ `SynapticEngine.linkRetroactivelyEmbedding(node, graph): Promise<Edge[]>`
+  - Modo embedding: cosine similarity sobre vectores — precisión semántica cross-vocabulario
+  - Fallback automático a Jaccard si no hay `embeddingService` configurado — zero breaking changes
+  - Edges con `metadata.mode: "embedding"` (o `"keyword"` en fallback)
+- ✅ `linkRetroactively()` (keyword path) enriquecido con `metadata.mode: "keyword"`
+- ✅ `_nodeText()` ahora hace `.trim()` — texto limpio independiente de descripción vacía
+- ✅ `ContextGraphManager.addNodeAsync(node): Promise<Node>`
+  - Hook async que invoca `linkRetroactivelyEmbedding()` cuando el engine tiene embedding service
+  - Fall-through a keyword si no hay embedding service
+- ✅ Barrel: exporta `cosineSimilarity` + `SynapticEmbeddingService`
+- ✅ Unit tests (21 tests): `cosineSimilarity` (7) · `linkRetroactivelyEmbedding` (7) · `hasEmbeddingService`/config (3) · `addNodeAsync` (4)
+- ✅ Workspace: 653 tests totales — cero regresiones
 
 ---
 

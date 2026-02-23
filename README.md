@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Tests](https://img.shields.io/badge/tests-632%20passing-brightgreen.svg)](ROADMAP.md)
+[![Tests](https://img.shields.io/badge/tests-653%20passing-brightgreen.svg)](ROADMAP.md)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2)](https://discord.gg/openweave)
 [![Documentation](https://img.shields.io/badge/docs-openweave.dev-blue)](https://openweave.dev)
 
@@ -41,7 +41,7 @@ OpenWeave is built on a single principle: **a senior developer doesn't just gene
 - 🗺️ **WeavePath Planning** — Every task is decomposed into Epics → Milestones → Sub-tasks. The agent advances one sub-task at a time and confirms before moving forward.
 - 🔬 **WeaveLint** — Static AST analysis that detects orphan code (unreferenced functions, classes, methods) before output is delivered.
 - 🔌 **WeaveLink MCP Server** — Full Model Context Protocol support for integration with Claude, Cursor, Cline and any MCP-compatible client. Supports both stdio and HTTP transport with Bearer API-key auth.
-- 🧬 **SynapticEngine** — Retroactive neuronal linking on every `addNode()` call. Uses Jaccard keyword similarity to auto-create `RELATES` edges across the entire graph history — just like synaptic connections forming through time.
+- 🧬 **SynapticEngine** — Retroactive neuronal linking on every `addNode()` / `addNodeAsync()` call. Uses Jaccard keyword similarity (sync) or cosine embedding similarity (async) to auto-create `RELATES` edges across the entire graph history — just like synaptic connections forming through time.
 - ⚡ **Hebbian Weights** — "Neurons that fire together, wire together". Edges strengthen on co-activation, decay over time, and are pruned below a configurable threshold — emergent importance scoring with zero extra config.
 - 🔌 **Pluggable Provider System** — Storage is a configuration decision, not an architecture constraint. Swap between JSON, SQLite, MongoDB, PostgreSQL, or MySQL with a single env var (`WEAVE_PROVIDER`).
 - 🖥️ **Weave Dashboard** — D3-powered graph visualizer with Kanban milestone board, error registry, and session diff view.
@@ -113,7 +113,7 @@ openweave/
 
 | Package | Description | Tests | Status |
 |---|---|---|---|
-| [`weave-graph`](packages/weave-graph) | Knowledge graph engine — nodes, edges, compression, SynapticEngine, HebbianWeights | 95 | 🚧 Alpha |
+| [`weave-graph`](packages/weave-graph) | Knowledge graph engine — nodes, edges, compression, SynapticEngine, HebbianWeights | 116 | 🚧 Alpha |
 | [`weave-embed`](packages/weave-embed) | Embedding service, vector store, hybrid semantic+structural search | 67 | 🚧 Alpha |
 | [`weave-lint`](packages/weave-lint) | AST-based orphan code detector for Python and TypeScript | 22 | 🚧 Alpha |
 | [`weave-path`](packages/weave-path) | Hierarchical milestone planner with persistence and status tracking | 19 | 🚧 Alpha |

@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
 import { CLIArgs, CommandResult, CliCommand, CLIConfig, ProjectState } from '../types';
+import { resolveProjectRoot } from '../utils';
 
 /**
  * Status Command - Display project status
@@ -24,7 +25,7 @@ export class StatusCommand implements CliCommand {
 
   async execute(args: CLIArgs): Promise<CommandResult> {
     try {
-      const projectRoot = process.cwd();
+      const projectRoot = resolveProjectRoot();
       const weaveDir = join(projectRoot, '.weave');
       const configPath = join(weaveDir, 'config.json');
 

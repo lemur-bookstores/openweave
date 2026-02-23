@@ -496,16 +496,16 @@ Infraestructura que permite registrar, activar y componer módulos de habilidade
 
 ---
 
-### M20 · Core Dev Skills 🔜
+### M20 · Core Dev Skills ✅
 
 Módulos de asistencia al desarrollo del día a día. Cada uno es un `SkillModule` independiente.
 
-- [ ] **`auto-fix`** — lee `.sentinel_logs/VULN-*.md` y aplica los parches de remediación directamente en los archivos afectados; crea un commit por VULN
-- [ ] **`code-review`** — analiza el diff actual (`git diff HEAD`) y emite comentarios estructurados: bugs, style, performance, security
-- [ ] **`test-gen`** — detecta funciones/clases sin cobertura y genera tests unitarios Vitest compatibles; respeta patrones existentes del proyecto
-- [ ] **`docs-gen`** — genera o actualiza JSDoc, README por paquete y CHANGELOG desde commits convencionales
-- [ ] **`refactor`** — detecta code smells (funciones largas, duplicación, acoplamiento) y propone refactors con justificación y diff preview
-- [ ] Unit tests: ≥ 5 tests por skill · integration test end-to-end por skill
+- [x] **`auto-fix`** — lee `.sentinel_logs/VULN-*.md` y aplica los parches de remediación directamente en los archivos afectados; crea un commit por VULN
+- [x] **`code-review`** — analiza el diff actual (`git diff HEAD`) y emite comentarios estructurados: bugs, style, performance, security
+- [x] **`test-gen`** — detecta funciones/clases sin cobertura y genera tests unitarios Vitest compatibles; respeta patrones existentes del proyecto
+- [x] **`docs-gen`** — genera o actualiza JSDoc, README por paquete y CHANGELOG desde commits convencionales
+- [x] **`refactor`** — detecta code smells (funciones largas, duplicación, acoplamiento) y propone refactors con justificación y diff preview
+- [x] Unit tests: ≥ 5 tests por skill · 39 tests M20 · 72 total en weave-skills
 
 ---
 

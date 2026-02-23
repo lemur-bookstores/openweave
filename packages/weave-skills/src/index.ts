@@ -31,3 +31,13 @@ export {
   mergeSkillConfig,
   configExists,
 } from './config-loader.js';
+
+// Core Dev Skills (M20)
+export {
+  autoFixSkill,
+  codeReviewSkill,
+  testGenSkill,
+  docsGenSkill,
+  refactorSkill,
+  CORE_DEV_SKILLS,
+} from './skills/index.js';

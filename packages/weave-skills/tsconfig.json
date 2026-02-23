@@ -3,8 +3,12 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
+    "noEmit": false,
     "allowImportingTsExtensions": false,
-    "module": "ESNext"
+    "module": "ESNext",
+    "paths": {
+      "@openweave/*": ["../*/dist"]
+    }
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules", "**/*.test.ts"]

@@ -32,7 +32,7 @@ export {
   configExists,
 } from './config-loader.js';
 
-// Core Dev Skills (M20) + DevOps Skills (M21)
+// Core Dev Skills (M20) + DevOps Skills (M21) + Developer Experience Skills (M22)
 export {
   autoFixSkill,
   codeReviewSkill,
@@ -46,4 +46,10 @@ export {
   containerAdvisorSkill,
   deployProvisionSkill,
   DEVOPS_SKILLS,
+  onboardingSkill,
+  commitComposerSkill,
+  contextMemorySkill,
+  multiRepoSkill,
+  cliInteractiveSkill,
+  DEV_EXPERIENCE_SKILLS,
 } from './skills/index.js';

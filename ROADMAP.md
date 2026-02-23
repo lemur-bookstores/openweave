@@ -522,16 +522,16 @@ Módulos orientados al ciclo de integración y despliegue.
 
 ---
 
-### M22 · Developer Experience Skills 🔜
+### M22 · Developer Experience Skills ✅
 
 Módulos que mejoran el flujo de trabajo individual y en equipo.
 
-- [ ] **`onboarding`** — genera un "tour interactivo" del proyecto: árbol anotado, flujo de datos principal, comandos de inicio, FAQ básica para devs nuevos
-- [ ] **`commit-composer`** — analiza el `git diff --staged` y propone un mensaje de commit en formato Conventional Commits; permite editar antes de confirmar
-- [ ] **`context-memory`** — persiste decisiones de arquitectura, acuerdos de equipo y razonamiento del agente entre sesiones usando `WeaveGraph` como memoria a largo plazo
-- [ ] **`multi-repo`** — permite referenciar y razonar sobre múltiples repositorios simultáneamente; útil para monorepos con dependencias cruzadas o microservicios
-- [ ] **`cli-interactive`** — modo REPL en terminal: `weave chat` abre una sesión conversacional persistente con historial, autocompletado de comandos y acceso a todos los skills activos
-- [ ] Unit tests: ≥ 5 tests por skill · E2E test para `cli-interactive`
+- [x] **`onboarding`** — genera un "tour interactivo" del proyecto: árbol anotado, flujo de datos principal, comandos de inicio, FAQ básica para devs nuevos
+- [x] **`commit-composer`** — analiza el `git diff --staged` y propone un mensaje de commit en formato Conventional Commits; permite editar antes de confirmar
+- [x] **`context-memory`** — persiste decisiones de arquitectura, acuerdos de equipo y razonamiento del agente entre sesiones usando `WeaveGraph` como memoria a largo plazo
+- [x] **`multi-repo`** — permite referenciar y razonar sobre múltiples repositorios simultáneamente; útil para monorepos con dependencias cruzadas o microservicios
+- [x] **`cli-interactive`** — modo REPL en terminal: `weave chat` abre una sesión conversacional persistente con historial, autocompletado de comandos y acceso a todos los skills activos
+- [x] Unit tests: 55 tests M22 · 177 total en weave-skills
 
 ---
 

@@ -60,3 +60,8 @@ export type {
   SubTask,
   Milestone,
 } from './types';
+
+// ── Provider Contract Spec (test utility) ────────────────────────────────
+// Re-usable vitest contract suite for any IWeaveProvider implementation.
+export { runProviderContractTests } from './provider-contract';
+export type { ProviderLike, ProviderFactory } from './provider-contract';

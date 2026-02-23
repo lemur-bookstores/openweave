@@ -402,27 +402,29 @@ Leer docs\SKILL-package-setup.md
 
 ---
 
----
-
 ## PHASE 8 — SynapticEngine `v0.8.0` 🔄
 
 > Goal: Dar a WeaveGraph comportamiento neuronal real. Cada nodo nuevo activa
 > una búsqueda retroactiva sobre toda la historia del grafo, creando conexiones
 > sin importar cuándo fue creado el nodo histórico — igual que las sinapsis
 > cerebrales que forman nuevas rutas a través del tiempo.
-> Status: In Progress
+> Status: M16 completed
 
-### M16 · Retroactive Linking — Keyword Phase 🔄
-- 🔜 `SynapticEngine` class en `packages/weave-graph/src/synaptic-engine.ts`
+### M16 · Retroactive Linking — Keyword Phase ✅
+- ✅ `SynapticEngine` class en `packages/weave-graph/src/synaptic-engine.ts`
   - `linkRetroactively(newNode, graph)` — al insertar un nodo, escanea todos los nodos históricos
   - Similitud por **keyword overlap** (Jaccard sobre tokens normalizados) — zero deps adicionales
   - Solo crea edge si `similarity >= WEAVE_SYNAPSE_THRESHOLD` (default `0.72`)
   - Respeta `WEAVE_SYNAPSE_MAX_CONNECTIONS` (default `20`) para evitar explosión de edges
-  - Retorna lista de edges creados retroactivamente
-- 🔜 Hook opcional en `ContextGraphManager.addNode()` — si `synapticEngine` inyectado, se invoca automáticamente
-- 🔜 EdgeType implícito: `RELATES` con `metadata.synapse: true` para distinguir edges manuales de automáticos
-- 🔜 Configurable via env vars: `WEAVE_SYNAPSE_THRESHOLD`, `WEAVE_SYNAPSE_MAX_CONNECTIONS`
-- 🔜 Unit tests: paridad con `MemoryProvider` contract + casos de explosión de edges, threshold, nodos aislados
+  - Retorna lista de edges creados retroactivamente; edges ordenados por similitud descendente
+- ✅ `tokenize()` — split camelCase/PascalCase + stop-word filtering + normalización
+- ✅ `jaccardSimilarity()` — J(A,B) = |A∩B| / |A∪B|; retorna 0 para sets vacíos
+- ✅ `SynapticGraph` interface — evita dependencia circular con `ContextGraphManager`
+- ✅ Hook opcional en `ContextGraphManager.setSynapticEngine()` + `addNode()` — zero breaking changes
+- ✅ EdgeType implícito: `RELATES` con `metadata.synapse: true` + `metadata.similarity: number`
+- ✅ Configurable via constructor: `{ threshold: 0.72, maxConnections: 20 }`
+- ✅ Unit tests (31 tests): `tokenize` (8) · `jaccardSimilarity` (5) · config (2) · `linkRetroactively` (12) · integration con `ContextGraphManager` (4)
+- ✅ Workspace: 607 tests totales — cero regresiones
 
 ### M17 · Hebbian Strengthening + Temporal Decay 🔜
 - 🔜 `HebbianWeights` class en `packages/weave-graph/src/hebbian-weights.ts`

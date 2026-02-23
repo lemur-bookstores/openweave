@@ -5,11 +5,27 @@ import { EdgeBuilder } from "./edge.js";
 // Configuration
 // ---------------------------------------------------------------------------
 
+/**
+ * Minimal duck-typed interface for an embedding service.
+ * `EmbeddingService` from `@openweave/weave-embed` satisfies this interface
+ * directly — no import required, keeping weave-graph free of extra deps.
+ */
+export interface SynapticEmbeddingService {
+  /** Embed a single text string. Returns an object with an `embedding` vector. */
+  embed(text: string): Promise<{ embedding: number[] }>;
+}
+
 export interface SynapticOptions {
-  /** Minimum Jaccard similarity required to create a retroactive edge. Default: 0.72 */
+  /** Minimum similarity required to create a retroactive edge. Default: 0.72 */
   threshold?: number;
   /** Maximum number of retroactive edges created per new node. Default: 20 */
   maxConnections?: number;
+  /**
+   * Optional embedding service for semantic (cosine) retroactive linking.
+   * When provided, `linkRetroactivelyEmbedding()` uses cosine similarity
+   * instead of Jaccard keyword overlap — enabling cross-vocabulary matching.
+   */
+  embeddingService?: SynapticEmbeddingService;
 }
 
 const DEFAULT_THRESHOLD = 0.72;
@@ -92,6 +108,26 @@ export function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
   return intersectionSize / unionSize;
 }
 
+/**
+ * Cosine similarity between two dense embedding vectors.
+ * Returns a value in [−1, 1]. Returns 0 when either vector has zero magnitude.
+ *
+ * cos(θ) = (A · B) / (|A| × |B|)
+ */
+export function cosineSimilarity(a: number[], b: number[]): number {
+  if (a.length === 0 || b.length === 0) return 0;
+  let dot = 0;
+  let magA = 0;
+  let magB = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    magA += a[i] * a[i];
+    magB += b[i] * b[i];
+  }
+  const denom = Math.sqrt(magA) * Math.sqrt(magB);
+  return denom === 0 ? 0 : dot / denom;
+}
+
 // ---------------------------------------------------------------------------
 // SynapticEngine
 // ---------------------------------------------------------------------------
@@ -124,15 +160,26 @@ export function jaccardSimilarity(a: Set<string>, b: Set<string>): number {
 export class SynapticEngine {
   private readonly threshold: number;
   private readonly maxConnections: number;
+  private readonly embeddingService?: SynapticEmbeddingService;
 
   constructor(options: SynapticOptions = {}) {
     this.threshold = options.threshold ?? DEFAULT_THRESHOLD;
     this.maxConnections = options.maxConnections ?? DEFAULT_MAX_CONNECTIONS;
+    this.embeddingService = options.embeddingService;
   }
 
   /** Read-only view of the resolved configuration. */
-  get config(): Required<SynapticOptions> {
-    return { threshold: this.threshold, maxConnections: this.maxConnections };
+  get config(): Required<Omit<SynapticOptions, "embeddingService">> & { hasEmbeddings: boolean } {
+    return {
+      threshold: this.threshold,
+      maxConnections: this.maxConnections,
+      hasEmbeddings: this.embeddingService !== undefined,
+    };
+  }
+
+  /** Whether an embedding service is configured. */
+  get hasEmbeddingService(): boolean {
+    return this.embeddingService !== undefined;
   }
 
   /**
@@ -173,7 +220,70 @@ export class SynapticEngine {
       const synapticEdge: Edge = {
         ...base,
         weight: score,
-        metadata: { synapse: true, similarity: score },
+        metadata: { synapse: true, similarity: score, mode: "keyword" },
+      };
+      graph.addEdge(synapticEdge);
+      created.push(synapticEdge);
+    }
+
+    return created;
+  }
+
+  /**
+   * Embedding-based retroactive linking (async).
+   *
+   * Requires an `embeddingService` to have been provided at construction time.
+   * If none is configured, falls back to keyword-based Jaccard similarity
+   * (identical to `linkRetroactively()`).
+   *
+   * Produced edges carry:
+   * - `metadata.synapse: true`
+   * - `metadata.similarity: number` — cosine similarity score
+   * - `metadata.mode: "embedding"` (or `"keyword"` on fallback)
+   *
+   * @returns The list of synaptic edges created and added to the graph.
+   */
+  async linkRetroactivelyEmbedding(
+    newNode: Node,
+    graph: SynapticGraph,
+  ): Promise<Edge[]> {
+    // No embedding service — fall back to keyword path
+    if (!this.embeddingService) {
+      return this.linkRetroactively(newNode, graph);
+    }
+
+    const existing = graph.getAllNodes().filter((n) => n.id !== newNode.id);
+    if (existing.length === 0) return [];
+
+    const newText = this._nodeText(newNode);
+    if (newText.trim().length === 0) return [];
+
+    // Embed new node + all existing nodes concurrently
+    const [newEmbed, ...existingEmbeds] = await Promise.all([
+      this.embeddingService.embed(newText),
+      ...existing.map((n) => this.embeddingService!.embed(this._nodeText(n))),
+    ]);
+
+    // Score every existing node via cosine similarity
+    const candidates: Array<{ node: Node; score: number }> = [];
+    for (let i = 0; i < existing.length; i++) {
+      const score = cosineSimilarity(newEmbed.embedding, existingEmbeds[i].embedding);
+      if (score >= this.threshold) {
+        candidates.push({ node: existing[i], score });
+      }
+    }
+
+    // Select top-maxConnections by descending similarity
+    candidates.sort((a, b) => b.score - a.score);
+    const selected = candidates.slice(0, this.maxConnections);
+
+    const created: Edge[] = [];
+    for (const { node, score } of selected) {
+      const base = EdgeBuilder.relates(newNode.id, node.id, score);
+      const synapticEdge: Edge = {
+        ...base,
+        weight: score,
+        metadata: { synapse: true, similarity: score, mode: "embedding" },
       };
       graph.addEdge(synapticEdge);
       created.push(synapticEdge);
@@ -188,6 +298,6 @@ export class SynapticEngine {
 
   /** Combine label + description into a single text fingerprint for a node. */
   private _nodeText(node: Node): string {
-    return [node.label, node.description ?? ""].join(" ");
+    return [node.label, node.description ?? ""].join(" ").trim();
   }
 }

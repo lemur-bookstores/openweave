@@ -2,8 +2,10 @@ import { describe, it, expect, beforeEach } from "vitest";
 import {
   tokenize,
   jaccardSimilarity,
+  cosineSimilarity,
   SynapticEngine,
   SynapticGraph,
+  SynapticEmbeddingService,
 } from "./synaptic-engine.js";
 import { ContextGraphManager } from "./index.js";
 import { NodeBuilder } from "./node.js";
@@ -371,6 +373,302 @@ describe("ContextGraphManager + SynapticEngine integration", () => {
     graph.addNode(NodeBuilder.concept("Python asyncio", "Event loop patterns"));
     graph.addNode(NodeBuilder.concept("TypeScript decorators", "Class metadata"));
 
+    expect(graph.getAllEdges()).toHaveLength(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M18 — cosineSimilarity()
+// ---------------------------------------------------------------------------
+
+describe("cosineSimilarity()", () => {
+  it("returns 1 for identical vectors", () => {
+    const v = [1, 0, 0, 0];
+    expect(cosineSimilarity(v, v)).toBeCloseTo(1);
+  });
+
+  it("returns 0 for orthogonal vectors", () => {
+    expect(cosineSimilarity([1, 0], [0, 1])).toBeCloseTo(0);
+  });
+
+  it("returns -1 for opposite vectors", () => {
+    expect(cosineSimilarity([1, 0], [-1, 0])).toBeCloseTo(-1);
+  });
+
+  it("handles unnormalised vectors", () => {
+    // cos([2,0], [6,0]) = 1
+    expect(cosineSimilarity([2, 0], [6, 0])).toBeCloseTo(1);
+  });
+
+  it("returns 0 for empty vectors", () => {
+    expect(cosineSimilarity([], [])).toBe(0);
+  });
+
+  it("returns 0 when one vector has zero magnitude", () => {
+    expect(cosineSimilarity([0, 0], [1, 0])).toBe(0);
+  });
+
+  it("computes partial similarity correctly", () => {
+    // cos([1,1,0], [1,0,1]) = 1/(sqrt2 * sqrt2) = 0.5
+    expect(cosineSimilarity([1, 1, 0], [1, 0, 1])).toBeCloseTo(0.5);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M18 — FakeSynapticEmbeddingService
+// ---------------------------------------------------------------------------
+
+/**
+ * Controlled fake embedding service for tests.
+ * Embeddings are pre-defined per text key — no ML model involved.
+ */
+class FakeSynapticEmbeddingService implements SynapticEmbeddingService {
+  private readonly embeddings: Map<string, number[]>;
+  public callCount = 0;
+
+  constructor(embeddings: Record<string, number[]>) {
+    this.embeddings = new Map(Object.entries(embeddings));
+  }
+
+  async embed(text: string): Promise<{ embedding: number[] }> {
+    this.callCount++;
+    const embedding = this.embeddings.get(text);
+    if (!embedding) {
+      // Return a zero vector for unknown texts
+      return { embedding: [0, 0, 0, 0] };
+    }
+    return { embedding };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// M18 — SynapticEngine.linkRetroactivelyEmbedding()
+// ---------------------------------------------------------------------------
+
+describe("SynapticEngine.linkRetroactivelyEmbedding()", () => {
+  it("creates an edge when cosine similarity >= threshold", async () => {
+    const nodeAText = "machine learning model";
+    const nodeBText = "neural network training";
+
+    // Nearly identical embeddings → high cosine similarity
+    const fake = new FakeSynapticEmbeddingService({
+      [nodeAText]: [1, 0.9, 0.8, 0.7],
+      [nodeBText]: [0.95, 0.88, 0.82, 0.72],
+    });
+
+    const engine = new SynapticEngine({ threshold: 0.99, embeddingService: fake });
+    const fakeGraph = new FakeGraph();
+
+    const nodeA = NodeBuilder.concept(nodeAText);
+    const nodeB = NodeBuilder.concept(nodeBText);
+    fakeGraph.seed(nodeA);
+    fakeGraph.seed(nodeB);
+
+    const edges = await engine.linkRetroactivelyEmbedding(nodeB, fakeGraph);
+    expect(edges.length).toBeGreaterThan(0);
+    expect(edges[0].metadata?.mode).toBe("embedding");
+    expect(edges[0].metadata?.synapse).toBe(true);
+  });
+
+  it("does not create edge when cosine similarity < threshold", async () => {
+    // Orthogonal vectors → cosine similarity = 0
+    const fake = new FakeSynapticEmbeddingService({
+      "TypeScript generics": [1, 0, 0, 0],
+      "Python asyncio": [0, 1, 0, 0],
+    });
+
+    const engine = new SynapticEngine({ threshold: 0.5, embeddingService: fake });
+    const fakeGraph = new FakeGraph();
+
+    fakeGraph.seed(NodeBuilder.concept("TypeScript generics"));
+    const nodeB = NodeBuilder.concept("Python asyncio");
+    fakeGraph.seed(nodeB);
+
+    const edges = await engine.linkRetroactivelyEmbedding(nodeB, fakeGraph);
+    expect(edges).toHaveLength(0);
+  });
+
+  it("embedding edges carry metadata.mode = 'embedding'", async () => {
+    const fake = new FakeSynapticEmbeddingService({
+      "concept alpha description": [1, 0, 0],
+      "concept beta description": [0.99, 0.1, 0],
+    });
+    const engine = new SynapticEngine({ threshold: 0.9, embeddingService: fake });
+
+    const fakeGraph = new FakeGraph();
+    const nodeA = NodeBuilder.concept("concept alpha", "description");
+    const nodeB = NodeBuilder.concept("concept beta", "description");
+    fakeGraph.seed(nodeA);
+    fakeGraph.seed(nodeB);
+
+    const edges = await engine.linkRetroactivelyEmbedding(nodeB, fakeGraph);
+    expect(edges.length).toBeGreaterThan(0);
+    expect(edges[0].metadata?.mode).toBe("embedding");
+  });
+
+  it("falls back to keyword mode when no embeddingService is configured", async () => {
+    const engine = new SynapticEngine({ threshold: 0.2 }); // no embeddingService
+    const fakeGraph = new FakeGraph();
+    const nodeA = NodeBuilder.concept("TypeScript generics", "Generic constraints");
+    const nodeB = NodeBuilder.concept("TypeScript generic types", "Type parameters");
+    fakeGraph.seed(nodeA);
+    fakeGraph.seed(nodeB);
+
+    const edges = await engine.linkRetroactivelyEmbedding(nodeB, fakeGraph);
+    // Falls back to Jaccard — should produce keyword edges
+    expect(edges.length).toBeGreaterThan(0);
+    expect(edges[0].metadata?.mode).toBe("keyword");
+  });
+
+  it("respects maxConnections limit", async () => {
+    const embeddings: Record<string, number[]> = {};
+    const nodes: Node[] = [];
+
+    // Create 10 nodes with nearly identical embeddings
+    for (let i = 0; i < 10; i++) {
+      const label = `concept number ${i}`;
+      const desc = `description ${i}`;
+      embeddings[`${label} ${desc}`] = [1 - i * 0.001, 0, 0];
+      nodes.push(NodeBuilder.concept(label, desc));
+    }
+    const newLabel = "new concept node";
+    const newDesc = "new description";
+    embeddings[`${newLabel} ${newDesc}`] = [1, 0, 0];
+
+    const fake = new FakeSynapticEmbeddingService(embeddings);
+    const engine = new SynapticEngine({
+      threshold: 0.9,
+      maxConnections: 3,
+      embeddingService: fake,
+    });
+
+    const fakeGraph = new FakeGraph();
+    for (const n of nodes) fakeGraph.seed(n);
+
+    const newNode = NodeBuilder.concept(newLabel, newDesc);
+    fakeGraph.seed(newNode);
+
+    const edges = await engine.linkRetroactivelyEmbedding(newNode, fakeGraph);
+    expect(edges.length).toBeLessThanOrEqual(3);
+  });
+
+  it("returns empty array when graph has no other nodes", async () => {
+    const fake = new FakeSynapticEmbeddingService({ "lone node": [1, 0] });
+    const engine = new SynapticEngine({ threshold: 0.5, embeddingService: fake });
+    const fakeGraph = new FakeGraph();
+    const node = NodeBuilder.concept("lone node");
+    fakeGraph.seed(node);
+
+    const edges = await engine.linkRetroactivelyEmbedding(node, fakeGraph);
+    expect(edges).toHaveLength(0);
+  });
+
+  it("selects top candidates by descending cosine score", async () => {
+    const fake = new FakeSynapticEmbeddingService({
+      "node a": [0.7, 0.7, 0],       // sim ~0.99 with [1,1,0]
+      "node b": [1, 0.1, 0],         // sim ~0.71 with [1,1,0]
+      "node c": [0.9, 0.8, 0],       // sim ~0.998 with [1,1,0]
+      "target node": [1, 1, 0],
+    });
+    const engine = new SynapticEngine({
+      threshold: 0.5,
+      maxConnections: 2,
+      embeddingService: fake,
+    });
+
+    const fakeGraph = new FakeGraph();
+    const nodeA = NodeBuilder.concept("node a");
+    const nodeB = NodeBuilder.concept("node b");
+    const nodeC = NodeBuilder.concept("node c");
+    fakeGraph.seed(nodeA);
+    fakeGraph.seed(nodeB);
+    fakeGraph.seed(nodeC);
+
+    const target = NodeBuilder.concept("target node");
+    fakeGraph.seed(target);
+
+    const edges = await engine.linkRetroactivelyEmbedding(target, fakeGraph);
+    // Only top 2 — nodeB (lowest sim) should be excluded
+    expect(edges.length).toBe(2);
+    const targetIds = edges.map((e) => e.targetId);
+    expect(targetIds).not.toContain(nodeB.id);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M18 — hasEmbeddingService + config
+// ---------------------------------------------------------------------------
+
+describe("SynapticEngine.hasEmbeddingService", () => {
+  it("returns false when no embedding service is configured", () => {
+    const engine = new SynapticEngine({ threshold: 0.5 });
+    expect(engine.hasEmbeddingService).toBe(false);
+  });
+
+  it("returns true when embedding service is configured", () => {
+    const fake = new FakeSynapticEmbeddingService({});
+    const engine = new SynapticEngine({ embeddingService: fake });
+    expect(engine.hasEmbeddingService).toBe(true);
+  });
+
+  it("config.hasEmbeddings reflects the service", () => {
+    const fake = new FakeSynapticEmbeddingService({});
+    const engine = new SynapticEngine({ threshold: 0.8, embeddingService: fake });
+    expect(engine.config.hasEmbeddings).toBe(true);
+    expect(engine.config.threshold).toBe(0.8);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// M18 — ContextGraphManager.addNodeAsync()
+// ---------------------------------------------------------------------------
+
+describe("ContextGraphManager.addNodeAsync()", () => {
+  it("adds the node to the graph", async () => {
+    const graph = new ContextGraphManager("test-async-add");
+    const node = NodeBuilder.concept("async node");
+    const result = await graph.addNodeAsync(node);
+    expect(result.id).toBe(node.id);
+    expect(graph.getNode(node.id)).toBeDefined();
+  });
+
+  it("uses embedding path when engine has embeddingService", async () => {
+    const fake = new FakeSynapticEmbeddingService({
+      "TypeScript generics": [1, 0.9, 0],
+      "TypeScript generic types": [0.98, 0.88, 0],
+    });
+    const engine = new SynapticEngine({
+      threshold: 0.95,
+      embeddingService: fake,
+    });
+    const graph = new ContextGraphManager("test-async-embed");
+    graph.setSynapticEngine(engine);
+
+    await graph.addNodeAsync(NodeBuilder.concept("TypeScript generics"));
+    await graph.addNodeAsync(NodeBuilder.concept("TypeScript generic types"));
+
+    const edges = graph.getAllEdges();
+    expect(edges.length).toBeGreaterThan(0);
+    expect(edges.some((e) => e.metadata?.mode === "embedding")).toBe(true);
+  });
+
+  it("falls back to keyword mode when engine has no embedding service", async () => {
+    const engine = new SynapticEngine({ threshold: 0.2 });
+    const graph = new ContextGraphManager("test-async-keyword-fallback");
+    graph.setSynapticEngine(engine);
+
+    await graph.addNodeAsync(NodeBuilder.concept("TypeScript generics", "Generic constraints"));
+    await graph.addNodeAsync(NodeBuilder.concept("TypeScript generic types", "Type parameters"));
+
+    const edges = graph.getAllEdges();
+    expect(edges.length).toBeGreaterThan(0);
+    expect(edges.some((e) => e.metadata?.mode === "keyword")).toBe(true);
+  });
+
+  it("does not add edges when no engine is attached", async () => {
+    const graph = new ContextGraphManager("test-async-no-engine");
+    await graph.addNodeAsync(NodeBuilder.concept("TypeScript generics"));
+    await graph.addNodeAsync(NodeBuilder.concept("TypeScript generic types"));
     expect(graph.getAllEdges()).toHaveLength(0);
   });
 });

@@ -81,6 +81,37 @@ export class ContextGraphManager {
   }
 
   /**
+   * Add a node to the graph and run embedding-based retroactive linking
+   * (async). If the attached SynapticEngine has an `embeddingService`,
+   * cosine similarity is used instead of Jaccard keyword overlap.
+   *
+   * If no SynapticEngine is attached, behaves identically to `addNode()`.
+   * If a SynapticEngine is attached but has no embedding service, the
+   * keyword-based path runs (same as `addNode()`).
+   *
+   * @returns The added node.
+   */
+  async addNodeAsync(node: Node): Promise<Node> {
+    this.nodes.set(node.id, node);
+
+    // Index by label
+    const labelKey = node.label.toLowerCase();
+    if (!this.nodesByLabel.has(labelKey)) {
+      this.nodesByLabel.set(labelKey, new Set());
+    }
+    this.nodesByLabel.get(labelKey)!.add(node.id);
+
+    this.updatedAt = new Date();
+
+    // Embedding-based retroactive linking (falls back to keyword if no embeddings)
+    if (this.synapticEngine) {
+      await this.synapticEngine.linkRetroactivelyEmbedding(node, this);
+    }
+
+    return node;
+  }
+
+  /**
    * Get a node by ID
    */
   getNode(nodeId: string): Node | undefined {
@@ -459,8 +490,8 @@ export { NodeBuilder } from "./node";
 export { EdgeBuilder } from "./edge";
 export { CompressionManager, ErrorSuppression } from "./compression";
 export type { CompressionStats } from "./compression";
-export { SynapticEngine, tokenize, jaccardSimilarity } from "./synaptic-engine";
-export type { SynapticOptions, SynapticGraph } from "./synaptic-engine";
+export { SynapticEngine, tokenize, jaccardSimilarity, cosineSimilarity } from "./synaptic-engine";
+export type { SynapticOptions, SynapticGraph, SynapticEmbeddingService } from "./synaptic-engine";
 export { HebbianWeights } from "./hebbian-weights";
 export type { HebbianOptions, HebbianGraph } from "./hebbian-weights";
 

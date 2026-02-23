@@ -22,10 +22,10 @@
 ## 1. Clone & Install
 
 ```bash
-git clone https://github.com/openweave/openweave.git
+git clone https://github.com/lemur-bookstores/openweave.git
 cd openweave
 
-# Install all workspace dependencies (14 packages)
+# Install all workspace dependencies (16 packages)
 pnpm install
 ```
 
@@ -39,7 +39,7 @@ Run the full test suite to confirm everything is working:
 pnpm -r test --run
 ```
 
-Expected output: **653 tests passing** across 14 packages.
+Expected output: **923 tests passing** across 16 packages.
 
 ---
 
@@ -59,6 +59,53 @@ pnpm --filter weave-cli dev query "TypeScript generics"
 # Check for orphan code
 pnpm --filter weave-cli dev orphans ./src
 ```
+
+### Managing Skills
+
+```bash
+# List all available skill modules
+weave skills list
+
+# Enable a skill
+weave skills enable code-review
+
+# Disable a skill
+weave skills disable code-review
+
+# Show skill details
+weave skills info test-gen
+```
+
+Available skills: `auto-fix` · `code-review` · `test-gen` · `docs-gen` · `refactor` · `pipeline-aware` · `dep-audit` · `perf-profile` · `container-advisor` · `deploy-provision` · `onboarding` · `commit-composer` · `context-memory` · `multi-repo` · `cli-interactive`
+
+See [skill-package-setup.md](./skill-package-setup.md) for adding custom skills.
+
+### Registering External Tools
+
+```bash
+# List registered tools
+weave tools list
+
+# Register a tool from a local manifest file
+weave tools add .weave/tools/my-tool.tool.json
+
+# Register a tool from a remote URL
+weave tools add https://example.com/tools/manifest.json
+
+# Show tool details and available actions
+weave tools info my-tool
+
+# Test a tool action
+weave tools test my-tool action-name --args='{"key":"value"}'
+
+# Remove a tool
+weave tools remove my-tool
+```
+
+Tool manifests are stored in `.weave/tools/<id>.tool.json`. Supported adapters:
+- **http** — REST/webhook endpoints (bearer, api-key, basic auth)
+- **mcp** — JSON-RPC 2.0 bridge to external MCP servers
+- **script** — local `bash`/`python`/`node` scripts (reads JSON from stdout)
 
 ### Option B — MCP Server (for AI clients)
 

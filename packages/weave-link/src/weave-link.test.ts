@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { WeaveLinkServer } from "../src/mcp-server";
 import { ALL_TOOLS, getTool } from "../src/tools";
 
@@ -313,5 +313,183 @@ describe("WeaveLink MCP Server", () => {
       expect((props.chat_id as Record<string, unknown>).type).toBe("string");
       expect((props.node_id as Record<string, unknown>).type).toBe("string");
     });
+  });
+});
+
+// ──────────────────────────────────────────────────────────
+// Security hardening tests
+// ──────────────────────────────────────────────────────────
+
+describe("Security — Input Validation (VULN-002)", () => {
+  let server: WeaveLinkServer;
+
+  beforeEach(() => {
+    server = new WeaveLinkServer({ name: "Security Test", version: "0.1.0" });
+  });
+
+  it("rejects an invalid node_type", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-1",
+      node_label: "My Label",
+      node_type: "INVALID_TYPE",
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/node_type/i);
+  });
+
+  it("rejects a node_label that exceeds 1024 characters", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-1",
+      node_label: "x".repeat(1025),
+      node_type: "CONCEPT",
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/node_label/i);
+  });
+
+  it("rejects a chat_id containing path-traversal characters", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "../../../evil",
+      node_id: "n-1",
+      node_label: "Valid",
+      node_type: "CONCEPT",
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/chat_id/i);
+  });
+
+  it("rejects a node_id with illegal characters (spaces)", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "bad node id",
+      node_label: "Valid",
+      node_type: "CONCEPT",
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/node_id/i);
+  });
+
+  it("rejects a metadata key prefixed with double underscores (prototype pollution guard)", async () => {
+    // __proto__ in an object literal modifies [[Prototype]] and creates no own key,
+    // so we use JSON.parse to produce an object with __proto__ as an own enumerable key.
+    const meta = JSON.parse('{"__proto__": "polluted"}') as Record<string, string>;
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-1",
+      node_label: "Valid",
+      node_type: "CONCEPT",
+      metadata: meta,
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/__proto__|metadata key/i);
+  });
+
+  it("rejects any metadata key prefixed with __ (double underscore)", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-1",
+      node_label: "Valid",
+      node_type: "CONCEPT",
+      metadata: { __evil: "injection" },
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/metadata key/i);
+  });
+
+  it("rejects a metadata value longer than 512 characters", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-1",
+      node_label: "Valid",
+      node_type: "CONCEPT",
+      metadata: { note: "v".repeat(513) },
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/metadata/i);
+  });
+
+  it("rejects metadata with more than 20 keys", async () => {
+    const meta: Record<string, string> = {};
+    for (let i = 0; i <= 20; i++) meta[`key${i}`] = "val";
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-1",
+      node_label: "Valid",
+      node_type: "CONCEPT",
+      metadata: meta,
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/metadata/i);
+  });
+
+  it("rejects frequency below 1", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-1",
+      node_label: "Valid",
+      node_type: "CONCEPT",
+      frequency: 0,
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/frequency/i);
+  });
+
+  it("rejects frequency above 10000", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-1",
+      node_label: "Valid",
+      node_type: "CONCEPT",
+      frequency: 10001,
+    });
+    expect(result.content[0].text).toContain("Error");
+    expect(result.content[0].text).toMatch(/frequency/i);
+  });
+
+  it("accepts a fully valid save_node call", async () => {
+    const result = await server.callTool("save_node", {
+      chat_id: "sess-1",
+      node_id: "n-valid",
+      node_label: "Valid Label",
+      node_type: "DECISION",
+      metadata: { source: "test" },
+      frequency: 5,
+    });
+    // Success responses use .data (not .text); error responses use .text
+    const item = result.content[0] as Record<string, unknown>;
+    expect(item.text).toBeUndefined();
+    expect(item.data).toBeDefined();
+  });
+});
+
+describe("Security — Sanitised Logging (VULN-001)", () => {
+  let server: WeaveLinkServer;
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    server = new WeaveLinkServer({ name: "Log Test", version: "0.1.0" });
+    consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it("does NOT log raw metadata values when callTool is invoked", async () => {
+    const sensitiveValue = "super-secret-metadata-content";
+    await server.callTool("save_node", {
+      chat_id: "sess-log",
+      node_id: "n-log",
+      node_label: "Log Check",
+      node_type: "CONCEPT",
+      metadata: { secret: sensitiveValue },
+    });
+
+    const allLogs = consoleSpy.mock.calls.map((c) => c.join(" ")).join("\n");
+    expect(allLogs).not.toContain(sensitiveValue);
+    // chat_id IS logged (safe identifier)
+    expect(allLogs).toContain("sess-log");
   });
 });

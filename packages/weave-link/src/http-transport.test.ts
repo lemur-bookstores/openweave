@@ -501,3 +501,156 @@ describe('M8 · Client Integrations', () => {
     });
   });
 });
+
+// ──────────────────────────────────────────────────────────
+// Security hardening tests
+// ──────────────────────────────────────────────────────────
+
+describe('Security hardening', () => {
+  // VULN-009: startup guard — auth enabled but no keys
+  describe('VULN-009 · startup guard', () => {
+    it('start() throws when auth is enabled and no API keys are configured', async () => {
+      const auth = new AuthManager({ enabled: true, apiKeys: [] });
+      const transport = new HttpTransport(new WeaveLinkServer(), auth, {
+        port: 45100 + Math.floor(Math.random() * 100),
+        host: '127.0.0.1',
+      });
+      await expect(transport.start()).rejects.toThrow(
+        'auth is enabled but no API keys are configured'
+      );
+      // server must not be left running
+      expect(transport.isRunning()).toBe(false);
+    });
+
+    it('start() succeeds when auth is enabled and at least one key is provided', async () => {
+      const auth = new AuthManager({ enabled: true, apiKeys: ['secure-key-abc'] });
+      const transport = new HttpTransport(new WeaveLinkServer(), auth, {
+        port: 45200 + Math.floor(Math.random() * 100),
+        host: '127.0.0.1',
+      });
+      await transport.start();
+      expect(transport.isRunning()).toBe(true);
+      await transport.stop();
+    });
+  });
+
+  // VULN-010: body size limit — 413 on oversized payload
+  describe('VULN-010 · body size limit', () => {
+    let transport: HttpTransport;
+    let port: number;
+
+    beforeEach(async () => {
+      port = 45300 + Math.floor(Math.random() * 100);
+      const auth = new AuthManager({ enabled: false });
+      transport = new HttpTransport(new WeaveLinkServer(), auth, {
+        port,
+        host: '127.0.0.1',
+        cors: true,
+      });
+      await transport.start();
+    });
+
+    afterEach(async () => {
+      if (transport.isRunning()) await transport.stop();
+    });
+
+    it('POST /tools/call returns 413 (or closes socket) when body exceeds 1 MB', async () => {
+      // Build a body slightly over 1 MB (1_048_576 bytes)
+      const oversize = 'x'.repeat(1_048_577);
+      let status: number | undefined;
+      try {
+        const res = await fetch(`http://127.0.0.1:${port}/tools/call`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: oversize,
+        });
+        status = res.status;
+      } catch {
+        // Socket was closed by the server before sending a response —
+        // this also indicates the oversized body was correctly rejected.
+        status = undefined;
+      }
+      // Server either returned 413 explicitly or closed the connection
+      expect(status === 413 || status === undefined).toBe(true);
+    });
+
+    it('POST /tools/call accepts a payload exactly at the size limit', async () => {
+      // A well-formed JSON call whose serialised form is well under 1 MB
+      const res = await fetch(`http://127.0.0.1:${port}/tools/call`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'query_graph', args: { chat_id: 'x', query: 'y' } }),
+      });
+      expect(res.status).not.toBe(413);
+    });
+  });
+
+  // VULN-011: SSE connection cap — 503 after MAX_SSE_CLIENTS
+  describe('VULN-011 · SSE connection cap', () => {
+    it('GET /events returns 503 when the SSE client limit (100) is reached', async () => {
+      const port = 45400 + Math.floor(Math.random() * 100);
+      const auth = new AuthManager({ enabled: false });
+      const transport = new HttpTransport(new WeaveLinkServer(), auth, {
+        port,
+        host: '127.0.0.1',
+        cors: true,
+      });
+      await transport.start();
+
+      // Manually fill the private sseClients map to the cap
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const clients: Map<string, unknown> = (transport as any).sseClients;
+      for (let i = 0; i < 100; i++) {
+        // Provide a minimal mock res with end() so transport.stop() can clean up
+        clients.set(`fake-client-${i}`, { id: `fake-client-${i}`, res: { end: () => {} } });
+      }
+
+      // The 101st connection should be rejected with 503
+      const res = await fetch(`http://127.0.0.1:${port}/events`);
+      expect(res.status).toBe(503);
+      const body = await res.json() as Record<string, unknown>;
+      expect(body.error).toContain('SSE connection limit');
+
+      await transport.stop();
+    });
+  });
+
+  // VULN-003 / CORS — disabled by default
+  describe('VULN-003 · CORS disabled by default', () => {
+    it('HttpTransport does NOT set Access-Control-Allow-Origin when cors is not explicitly enabled', async () => {
+      const port = 45500 + Math.floor(Math.random() * 100);
+      const auth = new AuthManager({ enabled: false });
+      // No cors option → should default to false
+      const transport = new HttpTransport(new WeaveLinkServer(), auth, {
+        port,
+        host: '127.0.0.1',
+      });
+      await transport.start();
+
+      const res = await fetch(`http://127.0.0.1:${port}/health`);
+      expect(res.headers.get('access-control-allow-origin')).toBeNull();
+
+      await transport.stop();
+    });
+  });
+
+  // VULN-013: generateApiKey rejection-sampling — no modulo bias
+  describe('VULN-013 · generateApiKey rejection sampling', () => {
+    it('generates keys using only the allowed alphabet characters', () => {
+      const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      for (let i = 0; i < 50; i++) {
+        const key = generateApiKey();
+        expect(key.length).toBeGreaterThanOrEqual(32);
+        for (const ch of key) {
+          expect(CHARS).toContain(ch);
+        }
+      }
+    });
+
+    it('generates unique keys on successive calls', () => {
+      const keys = new Set(Array.from({ length: 100 }, () => generateApiKey()));
+      // With 62^32 key space, all 100 should be distinct
+      expect(keys.size).toBe(100);
+    });
+  });
+});

@@ -53,7 +53,13 @@ openweave/
 │   ├── weave-lint/          # 🔬 WeaveLint — orphan code detector (AST analysis)
 │   ├── weave-path/          # 🗺️  WeavePath — milestone & sub-task planner
 │   ├── weave-link/          # 🔌 WeaveLink — MCP server for client integrations
-│   └── weave-check/         # ✅ WeaveCheck — eval suite & QA framework
+│   ├── weave-check/         # ✅ WeaveCheck — eval suite & QA framework
+│   ├── weave-provider/      # 🔌 Interfaz abstracta de persistencia (contrato IWeaveProvider)
+│   ├── weave-provider-json/     # 📄 Implementación JSON local (default, zero-config)
+│   ├── weave-provider-sqlite/   # 🗄️  Implementación SQLite (embebido, ideal para CLI)
+│   ├── weave-provider-mongodb/  # 🍃 Implementación MongoDB
+│   ├── weave-provider-postgres/ # 🐘 Implementación PostgreSQL
+│   └── weave-provider-mysql/    # 🐬 Implementación MySQL
 │
 ├── docs/                    # 📚 Documentation site source
 ├── scripts/                 # 🛠️  Dev scripts (setup, release, etc.)
@@ -345,6 +351,40 @@ Leer docs\SKILL-package-setup.md
   - ContextManager: 13 tests
   - SessionLifecycle: 10 tests
   - AgentCore: 14 tests
+
+---
+
+## PHASE 7 — Provider System `v0.7.0` 🔜
+
+> Goal: Desacoplar la persistencia del core. El storage debe ser una decisión de
+> configuración, no de arquitectura. WeaveGraph, SessionLifecycle, VectorStore
+> y WeavePath pasan a ser agnósticos del medio de almacenamiento.
+> Status: Planned
+
+### M13 · weave-provider — Contrato de Persistencia 🔜
+- 🔜 Definir interfaz `IWeaveProvider<T>` en TypeScript
+  - `get(id)` · `set(id, value)` · `delete(id)` · `list(prefix?)` · `clear(prefix?)` · `close()`
+- 🔜 Definir interfaz equivalente en Python (para posibles bindings futuros)
+- 🔜 Mecanismo de registro y resolución de providers via `WEAVE_PROVIDER` en `.env`
+- 🔜 Migrar `JsonProvider` desde implementación actual de `weave-graph` (zero breaking changes)
+- 🔜 `MemoryProvider` (`Map<>`) para tests y sesiones efímeras
+- 🔜 Inyección opcional en `WeaveGraph`, `SessionLifecycle`, `VectorStore`, `WeavePath`
+  - Si no se inyecta un provider, usa `JsonProvider` como fallback (backward compatible)
+- 🔜 Unit tests del contrato: test suite compartida que valida cualquier implementación
+
+### M14 · Providers Embebidos 🔜
+- 🔜 `weave-provider-sqlite` — `better-sqlite3` (zero native deps en la mayoría de plataformas)
+  - Ideal para CLI, escritorio y entornos sin servidor
+  - Schema único: tabla `kv_store(namespace TEXT, id TEXT, value JSON, updated_at TEXT)`
+- 🔜 Tests de paridad: mismo comportamiento observable que `JsonProvider`
+- 🔜 Benchmark: latencia de lectura/escritura vs JSON para grafos de 10k+ nodos
+
+### M15 · Providers Remotos 💭
+- 💭 `weave-provider-mongodb` — driver nativo; schema flexible alineado con `GraphSnapshot`
+- 💭 `weave-provider-postgres` — `pg` / `drizzle-orm`; tablas relacionales para nodos y aristas
+- 💭 `weave-provider-mysql` — `mysql2`; alternativa relacional para infra MySQL existente
+- 💭 Suite de tests compartida en `weave-check` que corre el mismo spec contra cualquier provider
+- 💭 CLI de migración: `weave migrate --from json --to sqlite|postgres|mongodb`
 
 ---
 

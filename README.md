@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-[![Tests](https://img.shields.io/badge/tests-653%20passing-brightgreen.svg)](ROADMAP.md)
+[![Tests](https://img.shields.io/badge/tests-923%20passing-brightgreen.svg)](ROADMAP.md)
 [![Discord](https://img.shields.io/badge/Discord-Join%20Community-5865F2)](https://discord.gg/openweave)
 [![Documentation](https://img.shields.io/badge/docs-openweave.dev-blue)](https://openweave.dev)
 
@@ -41,6 +41,8 @@ OpenWeave is built on a single principle: **a senior developer doesn't just gene
 - 🗺️ **WeavePath Planning** — Every task is decomposed into Epics → Milestones → Sub-tasks. The agent advances one sub-task at a time and confirms before moving forward.
 - 🔬 **WeaveLint** — Static AST analysis that detects orphan code (unreferenced functions, classes, methods) before output is delivered.
 - 🔌 **WeaveLink MCP Server** — Full Model Context Protocol support for integration with Claude, Cursor, Cline and any MCP-compatible client. Supports both stdio and HTTP transport with Bearer API-key auth.
+- 🧩 **Skill Modules System** — 15 optional developer skills (auto-fix, code-review, test-gen, docs-gen, refactor, pipeline-aware, dep-audit, onboarding, commit-composer, and more). Each skill is independently enabled via `weave skills enable <id>` or `.weave.config.json`.
+- 🔧 **External Tool Registry** — Register any REST API, MCP server, or local script as a native tool via `weave tools add`. Supports HTTP (bearer/api-key/basic), MCP (JSON-RPC 2.0), and script adapters. Tools are prefixed `<id>__<action>` to avoid collisions.
 - 🧬 **SynapticEngine** — Retroactive neuronal linking on every `addNode()` / `addNodeAsync()` call. Uses Jaccard keyword similarity (sync) or cosine embedding similarity (async) to auto-create `RELATES` edges across the entire graph history — just like synaptic connections forming through time.
 - ⚡ **Hebbian Weights** — "Neurons that fire together, wire together". Edges strengthen on co-activation, decay over time, and are pruned below a configurable threshold — emergent importance scoring with zero extra config.
 - 🔌 **Pluggable Provider System** — Storage is a configuration decision, not an architecture constraint. Swap between JSON, SQLite, MongoDB, PostgreSQL, or MySQL with a single env var (`WEAVE_PROVIDER`).
@@ -68,6 +70,8 @@ openweave/
 │   ├── weave-path/              # 🗺️  WeavePath — milestone & sub-task planner
 │   ├── weave-link/              # 🔌 WeaveLink — MCP server (stdio + HTTP transport)
 │   ├── weave-check/             # 📊 WeaveCheck — eval suite & QA KPI framework
+│   ├── weave-skills/            # 🧩 Skill Modules — auto-fix, code-review, test-gen, docs-gen…
+│   ├── weave-tools/             # 🔧 External Tool Registry — HTTP/MCP/script adapters
 │   ├── weave-provider/          # 🔌 Provider contract — IWeaveProvider<T> interface
 │   ├── weave-provider-sqlite/   # 🗄️  SQLite provider (node:sqlite built-in)
 │   ├── weave-provider-mongodb/  # 🍃 MongoDB provider
@@ -117,8 +121,10 @@ openweave/
 | [`weave-embed`](packages/weave-embed) | Embedding service, vector store, hybrid semantic+structural search | 67 | 🚧 Alpha |
 | [`weave-lint`](packages/weave-lint) | AST-based orphan code detector for Python and TypeScript | 22 | 🚧 Alpha |
 | [`weave-path`](packages/weave-path) | Hierarchical milestone planner with persistence and status tracking | 19 | 🚧 Alpha |
-| [`weave-link`](packages/weave-link) | MCP server — stdio + HTTP transport, API-key auth, Claude/Cursor installer | 82 | 🚧 Alpha |
+| [`weave-link`](packages/weave-link) | MCP server — stdio + HTTP transport, API-key auth, Claude/Cursor installer | 102 | 🚧 Alpha |
 | [`weave-check`](packages/weave-check) | Evaluation suite — 5 KPI evaluators, `WeaveCheckRunner`, shared provider contract tests | 60 | 🚧 Alpha |
+| [`weave-skills`](packages/weave-skills) | Skill Modules System — auto-fix, code-review, test-gen, docs-gen, refactor, pipeline-aware, dep-audit, onboarding, commit-composer, context-memory, multi-repo, cli-interactive | 177 | ✅ Stable |
+| [`weave-tools`](packages/weave-tools) | External Tool Registry — HTTP/MCP/script adapters, `ToolStore`, `ExternalToolBridge`, `validateManifest` | 61 | ✅ Stable |
 
 ### Provider System
 
@@ -135,7 +141,7 @@ openweave/
 | App | Description | Tests | Status |
 |---|---|---|---|
 | [`agent-core`](apps/agent-core) | OpenWeave ReAct agent — system prompt, tool registry, context manager, session lifecycle | 61 | 🚧 Alpha |
-| [`weave-cli`](apps/weave-cli) | CLI — `init`, `status`, `milestones`, `query`, `orphans`, `errors`, `save-node`, `migrate` | 35 | 🚧 Alpha |
+| [`weave-cli`](apps/weave-cli) | CLI — `init`, `status`, `milestones`, `query`, `orphans`, `errors`, `save-node`, `migrate`, `skills`, `tools` | 35 | ✅ Stable |
 | [`weave-dashboard`](apps/weave-dashboard) | D3 graph SPA — 4 views: graph, milestone board, error registry, session diff | 60 | 🚧 Alpha |
 
 ---

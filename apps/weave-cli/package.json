@@ -1,6 +1,6 @@
 {
   "name": "@openweave/weave-cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Weave CLI - Command-line interface for OpenWeave agent framework",
   "type": "module",
   "main": "./dist/index.js",

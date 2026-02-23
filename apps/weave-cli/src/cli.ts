@@ -105,7 +105,7 @@ Documentation: https://github.com/openweave/openweave
 }
 
 function showVersion(): void {
-  console.log('Weave CLI v0.1.0');
+  console.log('Weave CLI v1.0.0');
 }
 
 async function main(): Promise<void> {

@@ -45,7 +45,7 @@ import {
 } from './tool-loader.js';
 
 // Store
-import { ToolStore, type ToolStoreData } from './tool-store.js';
+import { ToolStore, type FsAdapter as StoreFsAdapter } from './tool-store.js';
 
 // Bridge
 import { ExternalToolBridge } from './tool-bridge.js';
@@ -407,13 +407,6 @@ describe('script-adapter', () => {
   });
 
   it('createScriptHandler handles spawn error', async () => {
-    const mockSpawn = vi.fn().mockReturnValue({
-      stdout: { on: () => {} },
-      stderr: { on: () => {} },
-      on: (event: string, _: unknown, cb?: unknown) => {
-        if (event === 'error') (cb as (err: Error) => void)(new Error('ENOENT'));
-      },
-    });
     // Wrap to emit error immediately
     const errorSpawn = vi.fn().mockReturnValue({
       stdout: { on: () => {} },
@@ -569,31 +562,27 @@ describe('tool-loader', () => {
 // Tool Store
 // ---------------------------------------------------------------------------
 
-function makeStoreFs(): {
-  data: Record<string, string>;
-  fs: LoaderFsAdapter & { writeFileSync: (p: string, d: string) => void };
-} {
+function makeStoreFs(): { data: Record<string, string>; fs: StoreFsAdapter } {
   const data: Record<string, string> = {};
   const fs = {
     existsSync: (p: unknown) => (p as string) in data,
     readFileSync: (p: unknown) => data[p as string] ?? (() => { throw new Error('not found'); })(),
     writeFileSync: (p: unknown, d: unknown) => { data[p as string] = d as string; },
     mkdirSync: () => {},
-    readdirSync: () => [],
   };
-  return { data, fs: fs as unknown as LoaderFsAdapter & { writeFileSync: (p: string, d: string) => void } };
+  return { data, fs: fs as unknown as StoreFsAdapter };
 }
 
 describe('tool-store', () => {
   it('list returns empty array initially', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     expect(store.list()).toHaveLength(0);
   });
 
   it('add persists manifest', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     store.add(HTTP_MANIFEST);
     expect(store.has('test-http')).toBe(true);
     expect(store.size()).toBe(1);
@@ -601,7 +590,7 @@ describe('tool-store', () => {
 
   it('get returns manifest by id', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     store.add(HTTP_MANIFEST);
     const m = store.get('test-http');
     expect(m?.name).toBe('Test HTTP Tool');
@@ -609,13 +598,13 @@ describe('tool-store', () => {
 
   it('get returns null for unknown id', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     expect(store.get('unknown')).toBeNull();
   });
 
   it('remove deletes manifest', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     store.add(HTTP_MANIFEST);
     const removed = store.remove('test-http');
     expect(removed).toBe(true);
@@ -624,13 +613,13 @@ describe('tool-store', () => {
 
   it('remove returns false for unknown id', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     expect(store.remove('ghost')).toBe(false);
   });
 
   it('list returns all stored manifests', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     store.add(HTTP_MANIFEST);
     store.add(MCP_MANIFEST);
     expect(store.list()).toHaveLength(2);
@@ -638,7 +627,7 @@ describe('tool-store', () => {
 
   it('clear removes all manifests', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     store.add(HTTP_MANIFEST);
     store.clear();
     expect(store.size()).toBe(0);
@@ -646,7 +635,7 @@ describe('tool-store', () => {
 
   it('overwrites existing manifest on add', () => {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     store.add(HTTP_MANIFEST);
     const updated = { ...HTTP_MANIFEST, name: 'Updated Name' };
     store.add(updated);
@@ -656,9 +645,9 @@ describe('tool-store', () => {
 
   it('reads persisted data across instances', () => {
     const { fs } = makeStoreFs();
-    const store1 = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store1 = new ToolStore('/proj', fs);
     store1.add(HTTP_MANIFEST);
-    const store2 = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store2 = new ToolStore('/proj', fs);
     expect(store2.has('test-http')).toBe(true);
   });
 });
@@ -670,7 +659,7 @@ describe('tool-store', () => {
 describe('ExternalToolBridge', () => {
   function makeBridgeStore() {
     const { fs } = makeStoreFs();
-    const store = new ToolStore('/proj', fs as ConstructorParameters<typeof ToolStore>[1]);
+    const store = new ToolStore('/proj', fs);
     return store;
   }
 

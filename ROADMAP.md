@@ -402,6 +402,49 @@ Leer docs\SKILL-package-setup.md
 
 ---
 
+---
+
+## PHASE 8 — SynapticEngine `v0.8.0` 🔄
+
+> Goal: Dar a WeaveGraph comportamiento neuronal real. Cada nodo nuevo activa
+> una búsqueda retroactiva sobre toda la historia del grafo, creando conexiones
+> sin importar cuándo fue creado el nodo histórico — igual que las sinapsis
+> cerebrales que forman nuevas rutas a través del tiempo.
+> Status: In Progress
+
+### M16 · Retroactive Linking — Keyword Phase 🔄
+- 🔜 `SynapticEngine` class en `packages/weave-graph/src/synaptic-engine.ts`
+  - `linkRetroactively(newNode, graph)` — al insertar un nodo, escanea todos los nodos históricos
+  - Similitud por **keyword overlap** (Jaccard sobre tokens normalizados) — zero deps adicionales
+  - Solo crea edge si `similarity >= WEAVE_SYNAPSE_THRESHOLD` (default `0.72`)
+  - Respeta `WEAVE_SYNAPSE_MAX_CONNECTIONS` (default `20`) para evitar explosión de edges
+  - Retorna lista de edges creados retroactivamente
+- 🔜 Hook opcional en `ContextGraphManager.addNode()` — si `synapticEngine` inyectado, se invoca automáticamente
+- 🔜 EdgeType implícito: `RELATES` con `metadata.synapse: true` para distinguir edges manuales de automáticos
+- 🔜 Configurable via env vars: `WEAVE_SYNAPSE_THRESHOLD`, `WEAVE_SYNAPSE_MAX_CONNECTIONS`
+- 🔜 Unit tests: paridad con `MemoryProvider` contract + casos de explosión de edges, threshold, nodos aislados
+
+### M17 · Hebbian Strengthening + Temporal Decay 🔜
+- 🔜 `HebbianWeights` class en `packages/weave-graph/src/hebbian-weights.ts`
+  - `strengthen(edgeId, graph)` — cuando dos nodos se co-activan (se recuperan juntos), `edge.weight += WEAVE_HEBBIAN_STRENGTH` (default `0.1`)
+  - `decay(graph)` — en cada ciclo, edges no tocados bajan `edge.weight × WEAVE_DECAY_RATE` (default `0.99`)
+  - `prune(graph, minWeight)` — elimina edges cuyo weight cae por debajo de `minWeight` (default `0.05`)
+- 🔜 `WeaveGraph.queryNodesByLabel()` y `queryNodesByType()` invocan `strengthen()` automáticamente en los edges de los resultados
+- 🔜 `edge.weight` ya existe en el tipo `Edge` — zero breaking changes
+- 🔜 Configurable via env vars: `WEAVE_HEBBIAN_STRENGTH`, `WEAVE_DECAY_RATE`, `WEAVE_PRUNE_THRESHOLD`
+- 🔜 Unit tests: strengthen en co-activación, decay progresivo, prune de edges débiles, no-op cuando weight ya es máximo
+
+### M18 · Embedding-Based Retroactive Linking 💭
+- 💭 Extensión de `SynapticEngine` con modo embedding (`useEmbeddings: true`)
+  - Usa `@openweave/weave-embed` `EmbeddingService` — cosine similarity en lugar de keyword overlap
+  - Precisión superior para conceptos semánticamente similares con vocabulario diferente
+  - Opcional y opt-in: no rompe M16 ni añade deps obligatorias a `weave-graph`
+- 💭 `SynapticEngine.linkRetroactively()` acepta `embeddingService?: EmbeddingService` como parámetro
+- 💭 Benchmark: comparar recall de keyword vs embedding sobre grafos reales de sesiones
+- 💭 Unit tests: similitud semántica cross-vocabulario, fallback a keyword si embedding no disponible
+
+---
+
 ## How to Influence the Roadmap
 
 - 💬 Open a [Discussion](https://github.com/lemur-bookstores/openweave/discussions)

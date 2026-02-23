@@ -8,6 +8,7 @@ import { queryCommand } from './commands/query';
 import { orphansCommand } from './commands/orphans';
 import { errorsCommand } from './commands/errors';
 import { saveNodeCommand } from './commands/save-node';
+import { migrateCommand } from './commands/migrate';
 
 /**
  * Weave CLI - Main Entry Point
@@ -21,6 +22,7 @@ const commands: Record<string, CliCommand> = {
   orphans: orphansCommand,
   errors: errorsCommand,
   'save-node': saveNodeCommand,
+  migrate: migrateCommand,
 };
 
 function parseArgs(): CLIArgs {

@@ -354,37 +354,51 @@ Leer docs\SKILL-package-setup.md
 
 ---
 
-## PHASE 7 — Provider System `v0.7.0` 🔜
+## PHASE 7 — Provider System `v0.7.0` ✅
 
 > Goal: Desacoplar la persistencia del core. El storage debe ser una decisión de
 > configuración, no de arquitectura. WeaveGraph, SessionLifecycle, VectorStore
 > y WeavePath pasan a ser agnósticos del medio de almacenamiento.
-> Status: Planned
+> Status: M13–M15 completed
 
-### M13 · weave-provider — Contrato de Persistencia 🔜
-- 🔜 Definir interfaz `IWeaveProvider<T>` en TypeScript
-  - `get(id)` · `set(id, value)` · `delete(id)` · `list(prefix?)` · `clear(prefix?)` · `close()`
-- 🔜 Definir interfaz equivalente en Python (para posibles bindings futuros)
-- 🔜 Mecanismo de registro y resolución de providers via `WEAVE_PROVIDER` en `.env`
-- 🔜 Migrar `JsonProvider` desde implementación actual de `weave-graph` (zero breaking changes)
-- 🔜 `MemoryProvider` (`Map<>`) para tests y sesiones efímeras
-- 🔜 Inyección opcional en `WeaveGraph`, `SessionLifecycle`, `VectorStore`, `WeavePath`
-  - Si no se inyecta un provider, usa `JsonProvider` como fallback (backward compatible)
-- 🔜 Unit tests del contrato: test suite compartida que valida cualquier implementación
+### M13 · weave-provider — Contrato de Persistencia ✅
+- ✅ Interfaz `IWeaveProvider<T>` definida en TypeScript
+  - `get(key)` · `set(key, value)` · `delete(key)` · `list(prefix?)` · `clear(prefix?)` · `close()`
+- ✅ `MemoryProvider` (`Map<>`) para tests y sesiones efímeras
+- ✅ `JsonProvider` — migración directa desde `weave-graph/PersistenceManager`; zero breaking changes
+  - Key convention `graph:<chatId>` preserva backward-compat total
+- ✅ `ProviderRegistry` — resolución via `WEAVE_PROVIDER` env var; registro de factories en runtime
+- ✅ `resolveProvider<T>()` — helper para obtener el provider configurado
+- ✅ Inyección opcional en `WeaveGraph/PersistenceManager` (JsonProvider como fallback)
+- ✅ Inyección opcional en `agent-core/SessionLifecycle` + async API (`initAsync/saveAsync/loadAsync/listSessionIdsAsync`)
+- ✅ Suite de contrato compartida: 16 tests × 2 providers + extras + registry = 45 tests
 
-### M14 · Providers Embebidos 🔜
-- 🔜 `weave-provider-sqlite` — `better-sqlite3` (zero native deps en la mayoría de plataformas)
+### M14 · Providers Embebidos ✅
+- ✅ `weave-provider-sqlite` — `node:sqlite` built-in (Node ≥ v22.5, stable in v23+, zero native compilation)
   - Ideal para CLI, escritorio y entornos sin servidor
   - Schema único: tabla `kv_store(namespace TEXT, id TEXT, value JSON, updated_at TEXT)`
-- 🔜 Tests de paridad: mismo comportamiento observable que `JsonProvider`
-- 🔜 Benchmark: latencia de lectura/escritura vs JSON para grafos de 10k+ nodos
+  - Pre-compiled statements; `DatabaseSync` reutilizado por toda la sesión
+- ✅ Suite de contrato compartida: 16 tests de paridad con `MemoryProvider`/`JsonProvider` + extras = 23 tests
+- ✅ Benchmark: 10 000 escrituras en ~173 ms, 10 000 lecturas en ~114 ms (`:memory:`, Node v25)
 
-### M15 · Providers Remotos 💭
-- 💭 `weave-provider-mongodb` — driver nativo; schema flexible alineado con `GraphSnapshot`
-- 💭 `weave-provider-postgres` — `pg` / `drizzle-orm`; tablas relacionales para nodos y aristas
-- 💭 `weave-provider-mysql` — `mysql2`; alternativa relacional para infra MySQL existente
-- 💭 Suite de tests compartida en `weave-check` que corre el mismo spec contra cualquier provider
-- 💭 CLI de migración: `weave migrate --from json --to sqlite|postgres|mongodb`
+### M15 · Providers Remotos ✅
+- ✅ `weave-provider-mongodb` — driver `mongodb` v6; schema flexible: colección `kv_store` con `{ _id, ns, value, updatedAt }`
+  - `MongoProvider.connect(opts)` · `MongoProvider.fromCollection(fake)` (injectable para tests)
+  - Tests con `FakeMongoCollection` in-memory — cero dependencias de mongod
+- ✅ `weave-provider-postgres` — driver `pg`; compatible con `@electric-sql/pglite` (PostgreSQL WASM in-process)
+  - `PostgresProvider.connect({ pool })` — acepta `pg.Pool`, `pg.Client` o `PGlite`
+  - Tests con PGlite compartido (`beforeAll` file-level) — 21 tests en ~8 s
+- ✅ `weave-provider-mysql` — driver `mysql2/promise`; MySQL 5.7+ y MariaDB
+  - `MysqlProvider.connect({ pool })` — injectable para tests sin MySQL real
+  - Tests con `FakeMysqlPool` in-memory — cero dependencias de mysqld
+- ✅ Suite de contrato compartida: `runProviderContractTests(factory)` exportada desde `@openweave/weave-check`
+  - 16 tests estándar; callable desde cualquier paquete de provider
+  - Duck-typed `ProviderLike<T>` — sin dependencia circular en weave-provider
+- ✅ `weave migrate` CLI: migración entre cualquier par de providers registrados
+  - `--from json|sqlite|memory|mongodb|postgres|mysql --to ...`
+  - `--dry-run` para preview sin escritura; `--prefix` para migración parcial
+  - 6 nuevos tests en `weave-cli`; 35 total
+- ✅ Workspace: 576 tests totales en 14 paquetes — cero regresiones
 
 ---
 

@@ -1,7 +1,7 @@
 {
-  "name": "@openweave/weave-graph",
-  "version": "0.1.0",
-  "description": "WeaveGraph — Persistent node & edge data model for AI agent context",
+  "name": "@openweave/weave-provider-sqlite",
+  "version": "0.7.0",
+  "description": "SQLite provider for OpenWeave — embedded, zero-deps via Node.js built-in node:sqlite (requires Node ≥ 22.5)",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -24,13 +24,7 @@
     "lint": "eslint src --max-warnings 0",
     "clean": "rm -rf dist"
   },
-  "keywords": [
-    "weave",
-    "graph",
-    "context",
-    "ai-agent",
-    "semantic-memory"
-  ],
+  "keywords": ["openweave", "sqlite", "provider", "storage"],
   "devDependencies": {
     "@types/node": "22.10.2",
     "typescript": "5.7.2",
@@ -38,5 +32,8 @@
   },
   "dependencies": {
     "@openweave/weave-provider": "workspace:*"
+  },
+  "engines": {
+    "node": ">=22.5.0"
   }
 }

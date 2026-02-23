@@ -1,16 +1,13 @@
 {
-  "name": "@openweave/weave-graph",
-  "version": "0.1.0",
-  "description": "WeaveGraph — Persistent node & edge data model for AI agent context",
+  "name": "@openweave/weave-provider-mongodb",
+  "version": "0.7.0",
+  "description": "MongoDB provider for OpenWeave — remote, flexible schema via official mongodb driver",
   "private": true,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md"
-  ],
+  "files": ["dist", "README.md"],
   "exports": {
     ".": {
       "import": "./dist/index.js",
@@ -24,19 +21,15 @@
     "lint": "eslint src --max-warnings 0",
     "clean": "rm -rf dist"
   },
-  "keywords": [
-    "weave",
-    "graph",
-    "context",
-    "ai-agent",
-    "semantic-memory"
-  ],
+  "keywords": ["openweave", "mongodb", "provider", "storage"],
+  "dependencies": {
+    "@openweave/weave-provider": "workspace:*",
+    "mongodb": "6.12.0"
+  },
   "devDependencies": {
     "@types/node": "22.10.2",
     "typescript": "5.7.2",
     "vitest": "3.0.0"
   },
-  "dependencies": {
-    "@openweave/weave-provider": "workspace:*"
-  }
+  "engines": { "node": ">=18.0.0" }
 }

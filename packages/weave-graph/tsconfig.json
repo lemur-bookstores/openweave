@@ -3,7 +3,10 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "@openweave/*": ["../*/dist"]
+    }
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules", "**/*.test.ts"]

@@ -402,6 +402,65 @@ Leer docs\SKILL-package-setup.md
 
 ---
 
+## PHASE 8 — SynapticEngine `v0.8.0` 🔄
+
+> Goal: Dar a WeaveGraph comportamiento neuronal real. Cada nodo nuevo activa
+> una búsqueda retroactiva sobre toda la historia del grafo, creando conexiones
+> sin importar cuándo fue creado el nodo histórico — igual que las sinapsis
+> cerebrales que forman nuevas rutas a través del tiempo.
+> Status: M16–M18 completed
+
+### M16 · Retroactive Linking — Keyword Phase ✅
+- ✅ `SynapticEngine` class en `packages/weave-graph/src/synaptic-engine.ts`
+  - `linkRetroactively(newNode, graph)` — al insertar un nodo, escanea todos los nodos históricos
+  - Similitud por **keyword overlap** (Jaccard sobre tokens normalizados) — zero deps adicionales
+  - Solo crea edge si `similarity >= WEAVE_SYNAPSE_THRESHOLD` (default `0.72`)
+  - Respeta `WEAVE_SYNAPSE_MAX_CONNECTIONS` (default `20`) para evitar explosión de edges
+  - Retorna lista de edges creados retroactivamente; edges ordenados por similitud descendente
+- ✅ `tokenize()` — split camelCase/PascalCase + stop-word filtering + normalización
+- ✅ `jaccardSimilarity()` — J(A,B) = |A∩B| / |A∪B|; retorna 0 para sets vacíos
+- ✅ `SynapticGraph` interface — evita dependencia circular con `ContextGraphManager`
+- ✅ Hook opcional en `ContextGraphManager.setSynapticEngine()` + `addNode()` — zero breaking changes
+- ✅ EdgeType implícito: `RELATES` con `metadata.synapse: true` + `metadata.similarity: number`
+- ✅ Configurable via constructor: `{ threshold: 0.72, maxConnections: 20 }`
+- ✅ Unit tests (31 tests): `tokenize` (8) · `jaccardSimilarity` (5) · config (2) · `linkRetroactively` (12) · integration con `ContextGraphManager` (4)
+- ✅ Workspace: 607 tests totales — cero regresiones
+
+### M17 · Hebbian Strengthening + Temporal Decay ✅
+- ✅ `HebbianWeights` class en `packages/weave-graph/src/hebbian-weights.ts`
+  - `strengthen(edgeId, graph)` — `edge.weight += hebbianStrength` (default `0.1`), techo en `maxWeight` (default `5.0`)
+  - `strengthenCoActivated(nodeIds, graph)` — batch: refuerza todos los edges entre nodos co-activados
+  - `decay(graph)` — `edge.weight × decayRate` (default `0.99`) por ciclo; retorna count de edges procesados
+  - `prune(graph, minWeight?)` — elimina edges cuyo weight < `pruneThreshold` (default `0.05`); retorna count eliminados
+- ✅ `HebbianGraph` interface — evita dependencia circular con `ContextGraphManager`
+- ✅ `ContextGraphManager.setHebbianWeights()` hook — zero breaking changes
+- ✅ `queryNodesByLabel()` y `queryNodesByType()` invocan `strengthenCoActivated()` automáticamente sobre los nodos resultado
+- ✅ `edge.weight` ya existía en el tipo `Edge` — zero schema changes
+- ✅ Unit tests (25 tests): config (2) · `strengthen` (5) · `strengthenCoActivated` (4) · `decay` (5) · `prune` (5) · integration con `ContextGraphManager` (4)
+- ✅ Workspace: 632 tests totales — cero regresiones
+
+### M18 · Embedding-Based Retroactive Linking ✅
+- ✅ `SynapticEmbeddingService` interface (duck-typed) en `synaptic-engine.ts`
+  - `embed(text): Promise<{ embedding: number[] }>` — compatible con `EmbeddingService` de `@openweave/weave-embed`
+  - Zero dependencia en `weave-graph/package.json` — zero deps obligatorias
+- ✅ `cosineSimilarity(a, b): number` — cos θ = A·B / (|A|×|B|); exportado desde barrel
+- ✅ `SynapticOptions.embeddingService?: SynapticEmbeddingService` — inyección opcional
+- ✅ `SynapticEngine.hasEmbeddingService: boolean` — getter de estado
+- ✅ `SynapticEngine.linkRetroactivelyEmbedding(node, graph): Promise<Edge[]>`
+  - Modo embedding: cosine similarity sobre vectores — precisión semántica cross-vocabulario
+  - Fallback automático a Jaccard si no hay `embeddingService` configurado — zero breaking changes
+  - Edges con `metadata.mode: "embedding"` (o `"keyword"` en fallback)
+- ✅ `linkRetroactively()` (keyword path) enriquecido con `metadata.mode: "keyword"`
+- ✅ `_nodeText()` ahora hace `.trim()` — texto limpio independiente de descripción vacía
+- ✅ `ContextGraphManager.addNodeAsync(node): Promise<Node>`
+  - Hook async que invoca `linkRetroactivelyEmbedding()` cuando el engine tiene embedding service
+  - Fall-through a keyword si no hay embedding service
+- ✅ Barrel: exporta `cosineSimilarity` + `SynapticEmbeddingService`
+- ✅ Unit tests (21 tests): `cosineSimilarity` (7) · `linkRetroactivelyEmbedding` (7) · `hasEmbeddingService`/config (3) · `addNodeAsync` (4)
+- ✅ Workspace: 653 tests totales — cero regresiones
+
+---
+
 ## How to Influence the Roadmap
 
 - 💬 Open a [Discussion](https://github.com/lemur-bookstores/openweave/discussions)

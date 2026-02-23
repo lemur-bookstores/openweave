@@ -85,6 +85,11 @@ web_modules/
 # Session data (never commit user sessions)
 openweave-sessions/
 .openweave/
+.weave-sessions/
+weave-sessions/
+
+# Sentinel security audit logs (do not commit before remediation)
+.sentinel_logs/
 
 # OS
 .DS_Store

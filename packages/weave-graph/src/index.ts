@@ -2,6 +2,7 @@ import { Node, Edge, NodeType, EdgeType, GraphSnapshot } from "./types";
 import { NodeBuilder } from "./node";
 import { EdgeBuilder } from "./edge";
 import { CompressionManager, ErrorSuppression } from "./compression";
+import { SynapticEngine } from "./synaptic-engine";
 
 /**
  * ContextGraphManager
@@ -19,6 +20,7 @@ export class ContextGraphManager {
   private version: string = "0.1.0";
   private createdAt: Date;
   private updatedAt: Date;
+  private synapticEngine?: SynapticEngine;
 
   constructor(chatId: string, compressionThreshold?: number) {
     this.chatId = chatId;
@@ -35,19 +37,35 @@ export class ContextGraphManager {
   }
 
   /**
-   * Add a node to the graph
+   * Attach a SynapticEngine to this graph. Once set, every subsequent
+   * `addNode()` call will automatically trigger retroactive linking.
+   */
+  setSynapticEngine(engine: SynapticEngine): void {
+    this.synapticEngine = engine;
+  }
+
+  /**
+   * Add a node to the graph.
+   * If a SynapticEngine is attached, retroactive linking is performed
+   * immediately after the node is indexed.
    */
   addNode(node: Node): Node {
     this.nodes.set(node.id, node);
-    
+
     // Index by label for keyword search
     const labelKey = node.label.toLowerCase();
     if (!this.nodesByLabel.has(labelKey)) {
       this.nodesByLabel.set(labelKey, new Set());
     }
     this.nodesByLabel.get(labelKey)!.add(node.id);
-    
+
     this.updatedAt = new Date();
+
+    // Retroactive linking — fires only when a SynapticEngine is attached
+    if (this.synapticEngine) {
+      this.synapticEngine.linkRetroactively(node, this);
+    }
+
     return node;
   }
 
@@ -410,5 +428,7 @@ export { NodeBuilder } from "./node";
 export { EdgeBuilder } from "./edge";
 export { CompressionManager, ErrorSuppression } from "./compression";
 export type { CompressionStats } from "./compression";
+export { SynapticEngine, tokenize, jaccardSimilarity } from "./synaptic-engine";
+export type { SynapticOptions, SynapticGraph } from "./synaptic-engine";
 
       

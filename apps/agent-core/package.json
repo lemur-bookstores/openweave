@@ -45,6 +45,7 @@
     "@openweave/weave-link": "workspace:*",
     "@openweave/weave-path": "workspace:*",
     "@openweave/weave-lint": "workspace:*",
-    "@openweave/weave-check": "workspace:*"
+    "@openweave/weave-check": "workspace:*",
+    "@openweave/weave-provider": "workspace:*"
   }
 }

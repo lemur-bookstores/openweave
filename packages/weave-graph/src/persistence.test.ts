@@ -38,6 +38,8 @@ describe("PersistenceManager", () => {
   });
 
   it("should create data directory if it doesn't exist", async () => {
+    // Remove the dir that beforeEach created, then re-create via ensureDataDir
+    await fs.rm(testDataDir, { recursive: true, force: true });
     await persistenceManager.ensureDataDir();
     const stat = await fs.stat(testDataDir);
     expect(stat.isDirectory()).toBe(true);
@@ -50,12 +52,11 @@ describe("PersistenceManager", () => {
     const snapshot = graph.snapshot();
     await persistenceManager.saveGraph(snapshot);
 
-    const filePath = path.join(testDataDir, "test-session.json");
-    const content = await fs.readFile(filePath, "utf-8");
-    expect(content).toBeDefined();
-
-    const parsed = JSON.parse(content);
-    expect(parsed.metadata.chatId).toBe("test-session");
+    // Verify by loading back through the provider (avoids coupling to internal file naming)
+    const loaded = await persistenceManager.loadGraph("test-session");
+    expect(loaded).toBeDefined();
+    expect(loaded?.metadata.chatId).toBe("test-session");
+    expect(Object.keys(loaded?.nodes ?? {})).toHaveLength(1);
   });
 
   it("should load a saved graph snapshot", async () => {

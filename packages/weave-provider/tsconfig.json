@@ -4,9 +4,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "allowImportingTsExtensions": false,
-    "paths": {
-      "@openweave/*": ["../../packages/*/dist"]
-    }
+    "noEmit": false
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules", "**/*.test.ts"]

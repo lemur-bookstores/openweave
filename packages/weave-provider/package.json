@@ -1,7 +1,7 @@
 {
-  "name": "@openweave/weave-graph",
-  "version": "0.1.0",
-  "description": "WeaveGraph — Persistent node & edge data model for AI agent context",
+  "name": "@openweave/weave-provider",
+  "version": "0.7.0",
+  "description": "Storage-agnostic persistence contract for OpenWeave — IWeaveProvider<T> interface + built-in implementations",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -24,19 +24,11 @@
     "lint": "eslint src --max-warnings 0",
     "clean": "rm -rf dist"
   },
-  "keywords": [
-    "weave",
-    "graph",
-    "context",
-    "ai-agent",
-    "semantic-memory"
-  ],
+  "keywords": ["openweave", "persistence", "provider", "storage"],
   "devDependencies": {
     "@types/node": "22.10.2",
     "typescript": "5.7.2",
     "vitest": "3.0.0"
   },
-  "dependencies": {
-    "@openweave/weave-provider": "workspace:*"
-  }
+  "dependencies": {}
 }

@@ -16,7 +16,7 @@
  */
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { IWeaveProvider } from '@openweave/weave-provider';
 import { SessionInfo, SessionStatus } from './types.js';
 
@@ -149,7 +149,9 @@ export class SessionLifecycle {
   // ── Internal helpers ──────────────────────────────────────
 
   private sessionPath(sessionId: string): string {
-    return join(this.sessionsDir, `${sessionId}.session.json`);
+    // VULN-012: strip any directory components to prevent path traversal
+    const safe = basename(sessionId);
+    return join(this.sessionsDir, `${safe}.session.json`);
   }
 
   private ensureDir(): void {

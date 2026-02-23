@@ -56,6 +56,9 @@ importers:
       '@openweave/weave-provider':
         specifier: workspace:*
         version: link:../../packages/weave-provider
+      '@openweave/weave-skills':
+        specifier: workspace:*
+        version: link:../../packages/weave-skills
     devDependencies:
       '@types/node':
         specifier: 22.10.1
@@ -256,6 +259,18 @@ importers:
       '@openweave/weave-provider':
         specifier: workspace:*
         version: link:../weave-provider
+    devDependencies:
+      '@types/node':
+        specifier: 22.10.2
+        version: 22.10.2
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+      vitest:
+        specifier: 3.0.0
+        version: 3.0.0(@types/node@22.10.2)
+
+  packages/weave-skills:
     devDependencies:
       '@types/node':
         specifier: 22.10.2

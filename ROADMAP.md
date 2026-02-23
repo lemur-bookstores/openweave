@@ -53,6 +53,7 @@ openweave/
 │   ├── weave-lint/          # 🔬 WeaveLint — orphan code detector (AST analysis)
 │   ├── weave-path/          # 🗺️  WeavePath — milestone & sub-task planner
 │   ├── weave-link/          # 🔌 WeaveLink — MCP server for client integrations
+│   ├── weave-tools/         # 🔧 WeaveTools — external tool registry & adapters (M24)
 │   ├── weave-check/         # ✅ WeaveCheck — eval suite & QA framework
 │   ├── weave-provider/      # 🔌 Interfaz abstracta de persistencia (contrato IWeaveProvider)
 │   ├── weave-provider-json/     # 📄 Implementación JSON local (default, zero-config)
@@ -522,6 +523,122 @@ Módulos que mejoran el flujo de trabajo individual y en equipo.
 - [ ] **`multi-repo`** — permite referenciar y razonar sobre múltiples repositorios simultáneamente; útil para monorepos con dependencias cruzadas o microservicios
 - [ ] **`cli-interactive`** — modo REPL en terminal: `weave chat` abre una sesión conversacional persistente con historial, autocompletado de comandos y acceso a todos los skills activos
 - [ ] Unit tests: ≥ 5 tests por skill · E2E test para `cli-interactive`
+
+---
+
+### M24 · External Tool Registry & Adapters 🔜
+
+Sistema de extensibilidad que permite a usuarios y desarrolladores registrar
+cualquier herramienta externa (calendario, email, WhatsApp, Slack, APIs REST, etc.)
+y exponerla al agente como si fuera una herramienta nativa de OpenWeave.
+
+**Nuevo paquete:** `packages/weave-tools/`
+
+```
+packages/weave-tools/
+└── src/
+    ├── types.ts              ← ToolManifest, ExternalTool, AdapterType interfaces
+    ├── tool-bridge.ts        ← ExternalToolBridge — enruta llamadas a adaptadores
+    ├── tool-loader.ts        ← descubre manifests en .weave/tools/ y paquetes npm
+    ├── tool-store.ts         ← persiste herramientas registradas en .weave/tools.json
+    ├── adapters/
+    │   ├── http-adapter.ts   ← herramientas expuestas como endpoint REST/webhook
+    │   ├── mcp-adapter.ts    ← bridge a cualquier servidor MCP externo
+    │   └── script-adapter.ts ← ejecuta script local (bash/python) y lee JSON stdout
+    └── index.ts
+```
+
+**`ToolManifest` — formato de descriptor (`.weave/tools/<name>.tool.json`):**
+```json
+{
+  "id": "google-calendar",
+  "name": "Google Calendar",
+  "description": "Create and query calendar events",
+  "version": "1.0.0",
+  "adapter": "http",
+  "endpoint": "https://my-calendar-bridge.example.com/mcp",
+  "auth": { "type": "bearer", "envVar": "GCAL_TOKEN" },
+  "tools": [
+    {
+      "name": "create_event",
+      "description": "Create a calendar event",
+      "inputSchema": { "type": "object", "properties": { "title": { "type": "string" }, "date": { "type": "string" } }, "required": ["title", "date"] }
+    },
+    {
+      "name": "list_events",
+      "description": "List upcoming events",
+      "inputSchema": { "type": "object", "properties": { "days": { "type": "number" } }, "required": [] }
+    }
+  ]
+}
+```
+
+**Flujos de registro — 4 mecanismos:**
+
+| Mecanismo | Comando / Método | Ejemplo |
+|---|---|---|
+| CLI interactivo | `weave tools add <url>` | `weave tools add https://my-bridge.com/manifest.json` |
+| Paquete npm | `weave tools add <pkg>` | `weave tools add @openweave-tools/gmail` |
+| Archivo local | Soltar `.tool.json` en `.weave/tools/` | `.weave/tools/whatsapp.tool.json` |
+| Programático | `toolRegistry.register(def, handler)` | Ya funciona hoy (ToolRegistry.register()) |
+
+**CLI commands:**
+```bash
+weave tools list                          # lista todas las herramientas registradas
+weave tools add <url|npm-pkg|./path>      # registra una herramienta
+weave tools remove <id>                   # elimina una herramienta
+weave tools test <id> <tool-name> --args  # invoca una herramienta para probarla
+weave tools info <id>                     # muestra el manifest y estado
+```
+
+**`ExternalToolBridge` — cómo se integra con `ToolRegistry`:**
+- Al iniciar `AgentCore`, `ToolLoader` escanea `.weave/tools/*.tool.json`
+- Por cada manifest, crea un `handler` que despacha la llamada al adaptador correcto
+- Registra cada herramienta en `ToolRegistry` vía `registry.register(def, handler)`
+- El LLM ve todas las herramientas (nativas + externas) de forma transparente
+- Errores de adaptador se capturan y retornan como `ToolResult.isError = true`
+
+**Adaptadores previstos:**
+
+| Adaptador | Descripción | Herramientas ejemplo |
+|---|---|---|
+| `http` | Llama a un endpoint REST/webhook y retorna JSON | Cualquier API REST |
+| `mcp` | Hace de bridge a otro servidor MCP (stdio o HTTP) | Servidores MCP comunitarios |
+| `script` | Ejecuta un proceso local y lee JSON de stdout | Scripts Python, bash, Node |
+
+**Paquetes de la comunidad (`@openweave-tools/*`):**
+
+Convención de naming para que la comunidad publique adaptadores:
+- `@openweave-tools/google-calendar` — Google Calendar API
+- `@openweave-tools/gmail` — Gmail: send, read, search
+- `@openweave-tools/whatsapp` — WhatsApp Business API
+- `@openweave-tools/slack` — Slack: post message, list channels
+- `@openweave-tools/notion` — Notion: páginas y databases
+- `@openweave-tools/github` — GitHub: issues, PRs, releases
+
+Cada paquete exporta un array de `ToolManifest[]` y opcionalmente un handler
+TypeScript. Si solo se provee el manifest, el bridge usa el adaptador HTTP/MCP.
+
+**Seguridad:**
+- Las credenciales se leen de variables de entorno (nunca se almacenan en el manifest)
+- Los nombres de herramientas externas se prefijan: `<tool-id>__<action>` para evitar colisiones con herramientas nativas
+- `validateManifest()` verifica el schema del manifest antes de registrar
+- Timeouts configurables por herramienta (`timeout_ms`, default 10 000 ms)
+
+**Tareas de implementación:**
+- [ ] `packages/weave-tools/` — scaffold: `package.json`, `tsconfig.json`, barrel
+- [ ] `types.ts` — `ToolManifest`, `AdapterType`, `ExternalToolBridge` interfaces
+- [ ] `http-adapter.ts` — fetch con auth (bearer / api-key / basic), timeout, error wrapping
+- [ ] `mcp-adapter.ts` — bridge stdio y HTTP a otro servidor MCP
+- [ ] `script-adapter.ts` — `child_process.spawn`, parse JSON stdout, stderr → error
+- [ ] `tool-loader.ts` — scan `.weave/tools/*.tool.json` + packages `@openweave-tools/*`
+- [ ] `tool-store.ts` — CRUD sobre `.weave/tools.json` (add / remove / list)
+- [ ] `tool-bridge.ts` — `ExternalToolBridge.loadAll(registry)` llamado desde `AgentCore.init()`
+- [ ] `validateManifest()` — JSON Schema validation del manifest
+- [ ] CLI commands en `weave-cli`: `weave tools add|remove|list|test|info`
+- [ ] Integración en `AgentCore` — hook `onInit` que invoca `ToolBridge.loadAll()`
+- [ ] Docs: `docs/external-tools.md` — guía para publicar un `@openweave-tools/*`
+- [ ] Unit tests: ≥ 5 tests por adaptador · loader · store · CLI commands
 
 ---
 

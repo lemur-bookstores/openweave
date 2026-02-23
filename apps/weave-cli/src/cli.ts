@@ -9,6 +9,7 @@ import { orphansCommand } from './commands/orphans';
 import { errorsCommand } from './commands/errors';
 import { saveNodeCommand } from './commands/save-node';
 import { migrateCommand } from './commands/migrate';
+import { skillsCommand } from './commands/skills';
 
 /**
  * Weave CLI - Main Entry Point
@@ -23,6 +24,7 @@ const commands: Record<string, CliCommand> = {
   errors: errorsCommand,
   'save-node': saveNodeCommand,
   migrate: migrateCommand,
+  skills: skillsCommand,
 };
 
 function parseArgs(): CLIArgs {
@@ -76,6 +78,8 @@ Commands:
   orphans               Analyze code for unused exports
   errors                Show error registry
   save-node             Manually add a node to the graph
+  skills                Manage skill modules (list, enable, disable, info)
+  migrate               Migrate data between storage providers
 
 Global Options:
   --help, -h            Show this help message

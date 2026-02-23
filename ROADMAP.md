@@ -472,59 +472,66 @@ Leer docs\SKILL-package-setup.md
 
 ---
 
-### M19 · Skill Module Registry 🔜
+### M19 · Skill Module Registry �
 
 Infraestructura que permite registrar, activar y componer módulos de habilidades de forma declarativa.
 
-- [ ] `SkillModule` interface — contrato base: `id`, `name`, `description`, `enabled`, `execute(context)`
-- [ ] `SkillRegistry` class — registro central de módulos disponibles
-  - `register(module)` — añade un skill al registry
+- [x] `SkillModule` interface — contrato base: `id`, `name`, `description`, `version`, `enabled`, `tags?`, `execute(context)`
+- [x] `SkillRegistry` class — registro central de módulos disponibles
+  - `register(module)` / `replace(module)` / `unregister(id)` — lifecycle completo
   - `enable(id)` / `disable(id)` — activa/desactiva en runtime
-  - `list()` — devuelve todos los módulos con su estado
-- [ ] Config en `.weave.config.json` — sección `skills: { "auto-fix": true, "code-review": false, ... }`
-- [ ] CLI: `weave skills list` · `weave skills enable <id>` · `weave skills disable <id>`
-- [ ] `SkillContext` — objeto de contexto que se inyecta en cada skill: `{ files, graph, session, git }`
-- [ ] Zero breaking changes — si no hay config, el agente corre sin ningún skill activo
-- [ ] Unit tests: registry CRUD · enable/disable · config loader · CLI commands
+  - `list()` / `listEnabled()` / `get(id)` / `has(id)` / `size` — query API
+  - `execute(id, ctx)` / `executeSafe(id, ctx)` / `executeAll(ctx)` — dispatch tipado
+  - `loadFromConfig(cfg)` / `toConfig()` — integración con SkillConfig
+- [x] `SkillContext` — `{ projectRoot, files, graph, session, git }` — inyectado en cada skill
+- [x] `SkillGitContext` — `{ branch, stagedFiles, unstagedFiles, stagedDiff }`
+- [x] `SkillResult` — `{ success, output, data?, error? }`
+- [x] `SkillConfig` / `WeaveConfig` — interfaces de configuración
+- [x] Config en `.weave.config.json` (raíz del proyecto) — sección `skills: { "auto-fix": true, ... }`
+- [x] `ConfigLoader` — `loadSkillConfig` · `saveSkillConfig` · `setSkillEnabled` · `mergeSkillConfig` · `configExists`
+- [x] CLI: `weave skills list` · `weave skills enable <id>` · `weave skills disable <id>` · `weave skills info <id>`
+- [x] Zero breaking changes — si no hay config, el agente corre sin ningún skill activo
+- [x] `packages/weave-skills/` — scaffold: `package.json`, `tsconfig.json`, `README.md`, barrel
+- [x] Unit tests: registry CRUD · enable/disable · execute · executeAll · loadFromConfig · config loader I/O
 
 ---
 
-### M20 · Core Dev Skills 🔜
+### M20 · Core Dev Skills ✅
 
 Módulos de asistencia al desarrollo del día a día. Cada uno es un `SkillModule` independiente.
 
-- [ ] **`auto-fix`** — lee `.sentinel_logs/VULN-*.md` y aplica los parches de remediación directamente en los archivos afectados; crea un commit por VULN
-- [ ] **`code-review`** — analiza el diff actual (`git diff HEAD`) y emite comentarios estructurados: bugs, style, performance, security
-- [ ] **`test-gen`** — detecta funciones/clases sin cobertura y genera tests unitarios Vitest compatibles; respeta patrones existentes del proyecto
-- [ ] **`docs-gen`** — genera o actualiza JSDoc, README por paquete y CHANGELOG desde commits convencionales
-- [ ] **`refactor`** — detecta code smells (funciones largas, duplicación, acoplamiento) y propone refactors con justificación y diff preview
-- [ ] Unit tests: ≥ 5 tests por skill · integration test end-to-end por skill
+- [x] **`auto-fix`** — lee `.sentinel_logs/VULN-*.md` y aplica los parches de remediación directamente en los archivos afectados; crea un commit por VULN
+- [x] **`code-review`** — analiza el diff actual (`git diff HEAD`) y emite comentarios estructurados: bugs, style, performance, security
+- [x] **`test-gen`** — detecta funciones/clases sin cobertura y genera tests unitarios Vitest compatibles; respeta patrones existentes del proyecto
+- [x] **`docs-gen`** — genera o actualiza JSDoc, README por paquete y CHANGELOG desde commits convencionales
+- [x] **`refactor`** — detecta code smells (funciones largas, duplicación, acoplamiento) y propone refactors con justificación y diff preview
+- [x] Unit tests: ≥ 5 tests por skill · 39 tests M20 · 72 total en weave-skills
 
 ---
 
-### M21 · DevOps Skills 🔜
+### M21 · DevOps Skills ✅
 
 Módulos orientados al ciclo de integración y despliegue.
 
-- [ ] **`pipeline-aware`** — parsea logs de CI/CD (GitHub Actions, GitLab CI) y diagnostica fallos con causa raíz + acción sugerida
-- [ ] **`dep-audit`** — escanea `package.json` de todo el workspace, detecta dependencias con versiones obsoletas o CVEs conocidos (vía `npm audit` + advisory DB), propone upgrades
-- [ ] **`perf-profile`** — analiza tiempos de build, test y bundle; identifica bottlenecks e informa en formato de tabla jerarquizada
-- [ ] **`container-advisor`** — audita `Dockerfile`s con checklist de buenas prácticas (multi-stage, non-root, COPY scope, HEALTHCHECK, pin de versiones base)
-- [ ] **`deploy-provision`** — guía interactiva de aprovisionamiento de producción: invoca `scripts/deploy/setup.sh`, valida pre-requisitos (dominio DNS, puertos, Docker), reporta estado de cada paso y sugiere correcciones ante fallos; integra con M23
-- [ ] Unit tests: ≥ 5 tests por skill
+- [x] **`pipeline-aware`** — parsea logs de CI/CD (GitHub Actions, GitLab CI) y diagnostica fallos con causa raíz + acción sugerida
+- [x] **`dep-audit`** — escanea `package.json` de todo el workspace, detecta dependencias con versiones obsoletas o CVEs conocidos (vía `npm audit` + advisory DB), propone upgrades
+- [x] **`perf-profile`** — analiza tiempos de build, test y bundle; identifica bottlenecks e informa en formato de tabla jerarquizada
+- [x] **`container-advisor`** — audita `Dockerfile`s con checklist de buenas prácticas (multi-stage, non-root, COPY scope, HEALTHCHECK, pin de versiones base)
+- [x] **`deploy-provision`** — guía interactiva de aprovisionamiento de producción: invoca `scripts/deploy/setup.sh`, valida pre-requisitos (dominio DNS, puertos, Docker), reporta estado de cada paso y sugiere correcciones ante fallos; integra con M23
+- [x] Unit tests: ≥ 5 tests por skill · 50 tests M21 · 122 total en weave-skills
 
 ---
 
-### M22 · Developer Experience Skills 🔜
+### M22 · Developer Experience Skills ✅
 
 Módulos que mejoran el flujo de trabajo individual y en equipo.
 
-- [ ] **`onboarding`** — genera un "tour interactivo" del proyecto: árbol anotado, flujo de datos principal, comandos de inicio, FAQ básica para devs nuevos
-- [ ] **`commit-composer`** — analiza el `git diff --staged` y propone un mensaje de commit en formato Conventional Commits; permite editar antes de confirmar
-- [ ] **`context-memory`** — persiste decisiones de arquitectura, acuerdos de equipo y razonamiento del agente entre sesiones usando `WeaveGraph` como memoria a largo plazo
-- [ ] **`multi-repo`** — permite referenciar y razonar sobre múltiples repositorios simultáneamente; útil para monorepos con dependencias cruzadas o microservicios
-- [ ] **`cli-interactive`** — modo REPL en terminal: `weave chat` abre una sesión conversacional persistente con historial, autocompletado de comandos y acceso a todos los skills activos
-- [ ] Unit tests: ≥ 5 tests por skill · E2E test para `cli-interactive`
+- [x] **`onboarding`** — genera un "tour interactivo" del proyecto: árbol anotado, flujo de datos principal, comandos de inicio, FAQ básica para devs nuevos
+- [x] **`commit-composer`** — analiza el `git diff --staged` y propone un mensaje de commit en formato Conventional Commits; permite editar antes de confirmar
+- [x] **`context-memory`** — persiste decisiones de arquitectura, acuerdos de equipo y razonamiento del agente entre sesiones usando `WeaveGraph` como memoria a largo plazo
+- [x] **`multi-repo`** — permite referenciar y razonar sobre múltiples repositorios simultáneamente; útil para monorepos con dependencias cruzadas o microservicios
+- [x] **`cli-interactive`** — modo REPL en terminal: `weave chat` abre una sesión conversacional persistente con historial, autocompletado de comandos y acceso a todos los skills activos
+- [x] Unit tests: 55 tests M22 · 177 total en weave-skills
 
 ---
 

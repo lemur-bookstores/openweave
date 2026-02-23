@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenWeave Dashboard</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+      :root {
+        --bg:        #0d1117;
+        --surface:   #161b22;
+        --border:    #30363d;
+        --text:      #c9d1d9;
+        --muted:     #8b949e;
+        --accent:    #58a6ff;
+        --pass:      #3fb950;
+        --warn:      #d29922;
+        --fail:      #f85149;
+        --skip:      #6e7681;
+        --radius:    6px;
+        --sidebar-w: 220px;
+      }
+
+      body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+             font-size: 14px; background: var(--bg); color: var(--text); height: 100vh;
+             display: flex; flex-direction: column; }
+
+      /* ── Top bar ── */
+      header { display: flex; align-items: center; gap: 12px; padding: 0 16px;
+               border-bottom: 1px solid var(--border); height: 48px; flex-shrink: 0;
+               background: var(--surface); }
+      header h1 { font-size: 14px; font-weight: 600; color: var(--accent); }
+      #connection-status { margin-left: auto; font-size: 12px; color: var(--muted); }
+      #connection-status.connected { color: var(--pass); }
+      #connection-status.error     { color: var(--fail); }
+      #server-url-input { background: var(--bg); border: 1px solid var(--border); color: var(--text);
+                          border-radius: var(--radius); padding: 4px 8px; font-size: 12px; width: 240px; }
+      button { background: var(--surface); border: 1px solid var(--border); color: var(--text);
+               border-radius: var(--radius); padding: 4px 10px; cursor: pointer; font-size: 12px; }
+      button:hover { border-color: var(--accent); color: var(--accent); }
+
+      /* ── Layout ── */
+      .shell { display: flex; flex: 1; overflow: hidden; }
+      nav    { width: var(--sidebar-w); border-right: 1px solid var(--border); padding: 12px 0;
+               flex-shrink: 0; background: var(--surface); overflow-y: auto; }
+      nav a  { display: block; padding: 8px 16px; color: var(--muted); text-decoration: none;
+               border-left: 3px solid transparent; font-size: 13px; }
+      nav a:hover, nav a.active { color: var(--text); border-left-color: var(--accent); background: rgba(88,166,255,.06); }
+      main   { flex: 1; overflow-y: auto; padding: 20px 24px; }
+
+      /* ── Views ── */
+      .view { display: none; }
+      .view.active { display: block; }
+
+      h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+      h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+
+      /* ── Graph view ── */
+      #graph-svg { width: 100%; height: calc(100vh - 140px); background: var(--bg);
+                   border: 1px solid var(--border); border-radius: var(--radius); }
+      .graph-controls { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+      .graph-controls label { color: var(--muted); font-size: 12px; }
+      select { background: var(--surface); border: 1px solid var(--border); color: var(--text);
+               border-radius: var(--radius); padding: 4px 8px; font-size: 12px; }
+
+      /* node types */
+      .node-CONCEPT     { fill: #58a6ff; }
+      .node-DECISION    { fill: #bc8cff; }
+      .node-MILESTONE   { fill: #3fb950; }
+      .node-ERROR       { fill: #f85149; }
+      .node-CORRECTION  { fill: #f0883e; }
+      .node-CODE_ENTITY { fill: #79c0ff; }
+
+      .link { stroke: var(--border); stroke-opacity: .7; }
+      .link.CORRECTS { stroke: #3fb950; }
+      .link.CAUSES   { stroke: #f85149; }
+      .link.BLOCKS   { stroke: #d29922; }
+
+      .node-label { font-size: 10px; fill: var(--text); pointer-events: none; }
+
+      /* ── Kanban ── */
+      .kanban { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+      .kanban-col { background: var(--surface); border: 1px solid var(--border);
+                    border-radius: var(--radius); padding: 12px; min-height: 200px; }
+      .kanban-col-title { font-size: 12px; font-weight: 600; margin-bottom: 10px;
+                          text-transform: uppercase; letter-spacing: .5px; }
+      .kanban-col[data-status="NOT_STARTED"]  .kanban-col-title { color: var(--muted); }
+      .kanban-col[data-status="IN_PROGRESS"]  .kanban-col-title { color: var(--accent); }
+      .kanban-col[data-status="COMPLETED"]    .kanban-col-title { color: var(--pass); }
+      .kanban-col[data-status="BLOCKED"]      .kanban-col-title { color: var(--fail); }
+      .kanban-col[data-status="DEFERRED"]     .kanban-col-title { color: var(--skip); }
+      .kanban-card { background: var(--bg); border: 1px solid var(--border);
+                     border-radius: var(--radius); padding: 10px; margin-bottom: 8px; }
+      .kanban-card h4 { font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+      .kanban-progress { height: 3px; background: var(--border); border-radius: 99px; margin-top: 6px; }
+      .kanban-progress-bar { height: 100%; border-radius: 99px; background: var(--accent); transition: width .3s; }
+      .kanban-meta { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+      /* ── Error registry ── */
+      .error-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      .error-table th, .error-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+      .error-table th { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .5px; font-size: 11px; }
+      .badge { display: inline-block; padding: 2px 7px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+      .badge-ERROR      { background: rgba(248,81,73,.15); color: var(--fail); }
+      .badge-CORRECTION { background: rgba(63,185,80,.15); color: var(--pass); }
+      .badge-PASS  { background: rgba(63,185,80,.15); color: var(--pass); }
+      .badge-WARN  { background: rgba(210,153,34,.15); color: var(--warn); }
+      .badge-FAIL  { background: rgba(248,81,73,.15); color: var(--fail); }
+
+      /* ── Session diff ── */
+      .diff-controls { display: flex; gap: 12px; margin-bottom: 16px; align-items: flex-end; }
+      .diff-controls label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+      .diff-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+      .diff-section { background: var(--surface); border: 1px solid var(--border);
+                      border-radius: var(--radius); padding: 12px; }
+      .diff-section.added   { border-color: rgba(63,185,80,.4); }
+      .diff-section.removed { border-color: rgba(248,81,73,.4); }
+      .diff-section.changed { border-color: rgba(210,153,34,.4); }
+      .diff-item { font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--border); }
+      .diff-item:last-child { border-bottom: none; }
+      .diff-added   { color: var(--pass); }
+      .diff-removed { color: var(--fail); }
+      .diff-changed { color: var(--warn); }
+
+      /* ── Empty state ── */
+      .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
+      .empty p { font-size: 13px; margin-top: 8px; }
+
+      /* ── Tooltip ── */
+      #tooltip { position: fixed; background: var(--surface); border: 1px solid var(--border);
+                 border-radius: var(--radius); padding: 8px 12px; font-size: 12px;
+                 pointer-events: none; opacity: 0; transition: opacity .15s; max-width: 260px;
+                 z-index: 1000; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>🕸 OpenWeave Dashboard</h1>
+      <input id="server-url-input" type="text" value="http://localhost:3000" placeholder="WeaveLink server URL" />
+      <button id="connect-btn">Connect</button>
+      <span id="connection-status">disconnected</span>
+    </header>
+    <div class="shell">
+      <nav>
+        <a href="#" data-view="graph" class="active">🧠 Graph</a>
+        <a href="#" data-view="milestones">🗺 Milestones</a>
+        <a href="#" data-view="errors">⚠️ Errors</a>
+        <a href="#" data-view="diff">🔀 Session Diff</a>
+      </nav>
+      <main>
+        <!-- Graph view -->
+        <div id="view-graph" class="view active">
+          <div class="graph-controls">
+            <h2>Knowledge Graph</h2>
+            <label>Filter: <select id="node-type-filter">
+              <option value="">All types</option>
+              <option value="CONCEPT">CONCEPT</option>
+              <option value="DECISION">DECISION</option>
+              <option value="MILESTONE">MILESTONE</option>
+              <option value="ERROR">ERROR</option>
+              <option value="CORRECTION">CORRECTION</option>
+              <option value="CODE_ENTITY">CODE_ENTITY</option>
+            </select></label>
+            <button id="refresh-graph">↻ Refresh</button>
+          </div>
+          <svg id="graph-svg"></svg>
+        </div>
+
+        <!-- Milestones view -->
+        <div id="view-milestones" class="view">
+          <h2>Milestone Board</h2>
+          <div id="kanban-board" class="kanban"></div>
+        </div>
+
+        <!-- Errors view -->
+        <div id="view-errors" class="view">
+          <h2>Error Registry</h2>
+          <div style="margin-bottom:12px; display:flex; gap:8px;">
+            <input id="error-search" type="text" placeholder="Filter errors…"
+              style="flex:1; background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); padding:6px 10px; font-size:12px;" />
+            <label style="color:var(--muted); font-size:12px; display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" id="show-corrected" /> Show corrected
+            </label>
+          </div>
+          <table class="error-table" id="error-table">
+            <thead><tr>
+              <th>Label</th><th>Frequency</th><th>Status</th><th>Corrected By</th>
+            </tr></thead>
+            <tbody id="error-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- Session diff view -->
+        <div id="view-diff" class="view">
+          <h2>Session Comparison</h2>
+          <div class="diff-controls">
+            <div>
+              <label>Session A</label>
+              <select id="diff-session-a"><option value="">— select session —</option></select>
+            </div>
+            <div>
+              <label>Session B</label>
+              <select id="diff-session-b"><option value="">— select session —</option></select>
+            </div>
+            <button id="diff-run-btn">Compare</button>
+          </div>
+          <div id="diff-output"></div>
+        </div>
+      </main>
+    </div>
+
+    <div id="tooltip"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

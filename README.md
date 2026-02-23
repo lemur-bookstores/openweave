@@ -214,6 +214,16 @@ Look for issues tagged [`good first issue`](https://github.com/openweave/openwea
 
 See [ROADMAP.md](ROADMAP.md) for the full development plan broken into phases.
 
+### Documentation
+
+| Guide | Description |
+|---|---|
+| [docs/getting-started.md](docs/getting-started.md) | Installation, setup, first session |
+| [docs/architecture.md](docs/architecture.md) | System architecture and package dependency graph |
+| [docs/weave-graph.md](docs/weave-graph.md) | WeaveGraph API — nodes, edges, SynapticEngine, HebbianWeights |
+| [docs/mcp-integration.md](docs/mcp-integration.md) | Connect Claude, Cursor, Cline via MCP |
+| [docs/sentinel-agent.md](docs/sentinel-agent.md) | Security audits with the Sentinel agent |
+
 ---
 
 ## 🌐 Community

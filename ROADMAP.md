@@ -461,6 +461,69 @@ Leer docs\SKILL-package-setup.md
 
 ---
 
+## PHASE 9 · Developer Agent — Skill Modules System
+
+> Diseño clave (decisión de equipo): **cada skill es un módulo opcional**.  
+> El usuario activa únicamente las capacidades que necesita vía config o CLI.  
+> Ningún módulo es requerido — el agente base sigue funcionando sin ellos.
+
+---
+
+### M19 · Skill Module Registry 🔜
+
+Infraestructura que permite registrar, activar y componer módulos de habilidades de forma declarativa.
+
+- [ ] `SkillModule` interface — contrato base: `id`, `name`, `description`, `enabled`, `execute(context)`
+- [ ] `SkillRegistry` class — registro central de módulos disponibles
+  - `register(module)` — añade un skill al registry
+  - `enable(id)` / `disable(id)` — activa/desactiva en runtime
+  - `list()` — devuelve todos los módulos con su estado
+- [ ] Config en `.weave.config.json` — sección `skills: { "auto-fix": true, "code-review": false, ... }`
+- [ ] CLI: `weave skills list` · `weave skills enable <id>` · `weave skills disable <id>`
+- [ ] `SkillContext` — objeto de contexto que se inyecta en cada skill: `{ files, graph, session, git }`
+- [ ] Zero breaking changes — si no hay config, el agente corre sin ningún skill activo
+- [ ] Unit tests: registry CRUD · enable/disable · config loader · CLI commands
+
+---
+
+### M20 · Core Dev Skills 🔜
+
+Módulos de asistencia al desarrollo del día a día. Cada uno es un `SkillModule` independiente.
+
+- [ ] **`auto-fix`** — lee `.sentinel_logs/VULN-*.md` y aplica los parches de remediación directamente en los archivos afectados; crea un commit por VULN
+- [ ] **`code-review`** — analiza el diff actual (`git diff HEAD`) y emite comentarios estructurados: bugs, style, performance, security
+- [ ] **`test-gen`** — detecta funciones/clases sin cobertura y genera tests unitarios Vitest compatibles; respeta patrones existentes del proyecto
+- [ ] **`docs-gen`** — genera o actualiza JSDoc, README por paquete y CHANGELOG desde commits convencionales
+- [ ] **`refactor`** — detecta code smells (funciones largas, duplicación, acoplamiento) y propone refactors con justificación y diff preview
+- [ ] Unit tests: ≥ 5 tests por skill · integration test end-to-end por skill
+
+---
+
+### M21 · DevOps Skills 🔜
+
+Módulos orientados al ciclo de integración y despliegue.
+
+- [ ] **`pipeline-aware`** — parsea logs de CI/CD (GitHub Actions, GitLab CI) y diagnostica fallos con causa raíz + acción sugerida
+- [ ] **`dep-audit`** — escanea `package.json` de todo el workspace, detecta dependencias con versiones obsoletas o CVEs conocidos (vía `npm audit` + advisory DB), propone upgrades
+- [ ] **`perf-profile`** — analiza tiempos de build, test y bundle; identifica bottlenecks e informa en formato de tabla jerarquizada
+- [ ] **`container-advisor`** — audita `Dockerfile`s con checklist de buenas prácticas (multi-stage, non-root, COPY scope, HEALTHCHECK, pin de versiones base)
+- [ ] Unit tests: ≥ 5 tests por skill
+
+---
+
+### M22 · Developer Experience Skills 🔜
+
+Módulos que mejoran el flujo de trabajo individual y en equipo.
+
+- [ ] **`onboarding`** — genera un "tour interactivo" del proyecto: árbol anotado, flujo de datos principal, comandos de inicio, FAQ básica para devs nuevos
+- [ ] **`commit-composer`** — analiza el `git diff --staged` y propone un mensaje de commit en formato Conventional Commits; permite editar antes de confirmar
+- [ ] **`context-memory`** — persiste decisiones de arquitectura, acuerdos de equipo y razonamiento del agente entre sesiones usando `WeaveGraph` como memoria a largo plazo
+- [ ] **`multi-repo`** — permite referenciar y razonar sobre múltiples repositorios simultáneamente; útil para monorepos con dependencias cruzadas o microservicios
+- [ ] **`cli-interactive`** — modo REPL en terminal: `weave chat` abre una sesión conversacional persistente con historial, autocompletado de comandos y acceso a todos los skills activos
+- [ ] Unit tests: ≥ 5 tests por skill · E2E test para `cli-interactive`
+
+---
+
 ## How to Influence the Roadmap
 
 - 💬 Open a [Discussion](https://github.com/lemur-bookstores/openweave/discussions)

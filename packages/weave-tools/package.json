@@ -1,0 +1,40 @@
+{
+  "name": "@openweave/weave-tools",
+  "version": "1.0.0",
+  "description": "WeaveTools — External Tool Registry & Adapters for OpenWeave agent extensibility",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "eslint src --max-warnings 0",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "openweave",
+    "tools",
+    "adapters",
+    "mcp",
+    "agent",
+    "extensibility"
+  ],
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.7.2",
+    "vitest": "3.0.0"
+  }
+}

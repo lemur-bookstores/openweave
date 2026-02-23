@@ -373,12 +373,13 @@ Leer docs\SKILL-package-setup.md
 - ✅ Inyección opcional en `agent-core/SessionLifecycle` + async API (`initAsync/saveAsync/loadAsync/listSessionIdsAsync`)
 - ✅ Suite de contrato compartida: 16 tests × 2 providers + extras + registry = 45 tests
 
-### M14 · Providers Embebidos 🔜
-- 🔜 `weave-provider-sqlite` — `better-sqlite3` (zero native deps en la mayoría de plataformas)
+### M14 · Providers Embebidos ✅
+- ✅ `weave-provider-sqlite` — `node:sqlite` built-in (Node ≥ v22.5, stable in v23+, zero native compilation)
   - Ideal para CLI, escritorio y entornos sin servidor
   - Schema único: tabla `kv_store(namespace TEXT, id TEXT, value JSON, updated_at TEXT)`
-- 🔜 Tests de paridad: mismo comportamiento observable que `JsonProvider`
-- 🔜 Benchmark: latencia de lectura/escritura vs JSON para grafos de 10k+ nodos
+  - Pre-compiled statements; `DatabaseSync` reutilizado por toda la sesión
+- ✅ Suite de contrato compartida: 16 tests de paridad con `MemoryProvider`/`JsonProvider` + extras = 23 tests
+- ✅ Benchmark: 10 000 escrituras en ~173 ms, 10 000 lecturas en ~114 ms (`:memory:`, Node v25)
 
 ### M15 · Providers Remotos 💭
 - 💭 `weave-provider-mongodb` — driver nativo; schema flexible alineado con `GraphSnapshot`

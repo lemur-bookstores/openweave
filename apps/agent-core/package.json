@@ -1,0 +1,50 @@
+{
+  "name": "@openweave/agent-core",
+  "version": "0.1.0",
+  "description": "OpenWeave Agent Core — ReAct orchestrator with tool registry, context management and session lifecycle",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "agent-core": "./dist/main.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "lint": "eslint src --max-warnings 0",
+    "clean": "rm -rf dist",
+    "start": "node dist/main.js"
+  },
+  "keywords": [
+    "openweave",
+    "agent",
+    "react-loop",
+    "mcp",
+    "ai-agent"
+  ],
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.7.2",
+    "vitest": "3.0.0"
+  },
+  "dependencies": {
+    "@openweave/weave-graph": "workspace:*",
+    "@openweave/weave-link": "workspace:*",
+    "@openweave/weave-path": "workspace:*",
+    "@openweave/weave-lint": "workspace:*",
+    "@openweave/weave-check": "workspace:*"
+  }
+}

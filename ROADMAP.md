@@ -507,6 +507,7 @@ Módulos orientados al ciclo de integración y despliegue.
 - [ ] **`dep-audit`** — escanea `package.json` de todo el workspace, detecta dependencias con versiones obsoletas o CVEs conocidos (vía `npm audit` + advisory DB), propone upgrades
 - [ ] **`perf-profile`** — analiza tiempos de build, test y bundle; identifica bottlenecks e informa en formato de tabla jerarquizada
 - [ ] **`container-advisor`** — audita `Dockerfile`s con checklist de buenas prácticas (multi-stage, non-root, COPY scope, HEALTHCHECK, pin de versiones base)
+- [ ] **`deploy-provision`** — guía interactiva de aprovisionamiento de producción: invoca `scripts/deploy/setup.sh`, valida pre-requisitos (dominio DNS, puertos, Docker), reporta estado de cada paso y sugiere correcciones ante fallos; integra con M23
 - [ ] Unit tests: ≥ 5 tests por skill
 
 ---
@@ -521,6 +522,86 @@ Módulos que mejoran el flujo de trabajo individual y en equipo.
 - [ ] **`multi-repo`** — permite referenciar y razonar sobre múltiples repositorios simultáneamente; útil para monorepos con dependencias cruzadas o microservicios
 - [ ] **`cli-interactive`** — modo REPL en terminal: `weave chat` abre una sesión conversacional persistente con historial, autocompletado de comandos y acceso a todos los skills activos
 - [ ] Unit tests: ≥ 5 tests por skill · E2E test para `cli-interactive`
+
+---
+
+---
+
+## PHASE 10 — Production Infrastructure `v1.0.0`
+
+> Goal: Provisionar un entorno de producción seguro con un único comando.
+> nginx como reverse proxy, TLS automático vía Certbot/Let's Encrypt,
+> firewall endurecido y docker-compose listo para producción.
+> Status: M23 planned
+
+### M23 · Deploy Scripts & Production Hardening 🔜
+
+Conjunto de scripts de shell idempotentes en `scripts/deploy/` que configuran
+de principio a fin un servidor Linux limpio (Ubuntu 22.04 / Debian 12) para
+ejecejutar WeaveLink en producción.
+
+```
+scripts/
+└── deploy/
+    ├── setup.sh            ← entrypoint principal; orquesta todos los pasos
+    ├── validate-env.sh     ← verifica DOMAIN, WEAVE_API_KEY y demás vars requeridas
+    ├── docker.sh           ← instala Docker Engine + Compose plugin si no existen
+    ├── compose.yml         ← docker-compose de producción (weave-link + volúmenes)
+    ├── firewall.sh         ← ufw: deniega todo, permite 22/tcp 80/tcp 443/tcp
+    ├── nginx.sh            ← instala nginx, genera weave.conf con reverse proxy
+    ├── nginx.conf.tpl      ← plantilla: upstream → localhost:3001, headers seg.
+    ├── certbot.sh          ← obtiene certificado Let's Encrypt; configura renovación
+    └── verify.sh           ← smoke-test: GET https://<DOMAIN>/health debe retornar 200
+```
+
+**`setup.sh` — flujo de ejecución:**
+```
+curl -sSL https://raw.githubusercontent.com/openweave/openweave/main/scripts/deploy/setup.sh \
+  | DOMAIN=api.example.com WEAVE_API_KEY=<key> bash
+```
+1. `validate-env.sh` — aborta si faltan variables críticas
+2. `docker.sh` — instala Docker si no está presente
+3. `firewall.sh` — aplica reglas ufw (idempotente)
+4. `compose.yml` — levanta `ghcr.io/openweave/weave-link` con restart-policy
+5. `nginx.sh` — configura reverse proxy HTTP → contenedor
+6. `certbot.sh` — emite TLS, reconfigura nginx con HTTPS, activa renovación automática
+7. `verify.sh` — valida que `https://<DOMAIN>/health` responde `{"status":"ok"}`
+
+**Checklist de seguridad que cubre M23:**
+
+| Control | Mecanismo |
+|---|---|
+| TLS obligatorio | Certbot + Let's Encrypt; HTTP → HTTPS redirect |
+| Cabeceras de seguridad | `Strict-Transport-Security`, `X-Content-Type-Options`, `X-Frame-Options` |
+| Rate limiting | `limit_req_zone` en nginx (100 req/s por IP) |
+| Firewall | ufw deny all → allow 22/80/443 solamente |
+| Autenticación | `WEAVE_API_KEY` obligatoria (VULN-009 ya corregido) |
+| Secretos en runtime | Key inyectada vía env var, nunca en imagen Docker |
+| Renovación TLS | `systemd timer` o `cron` semanal (`certbot renew --quiet`) |
+| Usuario no-root | `USER weave` en el contenedor (ya en Dockerfile) |
+| CORS restringido | Deshabilitado por defecto (VULN-003/008 ya corregidos) |
+
+**Variables de entorno requeridas por `setup.sh`:**
+
+```bash
+DOMAIN=api.example.com       # FQDN con DNS apuntando al servidor
+WEAVE_API_KEY=<key>          # generada con: weave-link keygen
+EMAIL=admin@example.com      # para notificaciones de expiración de cert
+WEAVE_PORT=3001              # puerto interno del contenedor (default: 3001)
+WEAVE_PROVIDER=sqlite        # provider de persistencia (sqlite | postgres | ...)
+```
+
+**Tareas de implementación:**
+- [ ] `validate-env.sh` — chequeo de vars + DNS lookup del dominio
+- [ ] `docker.sh` — detección de distro (apt/yum), instalación Docker CE
+- [ ] `firewall.sh` — reglas ufw idempotentes
+- [ ] `compose.yml` — servicio `weave-link`, volumen `weave-data`, red interna
+- [ ] `nginx.sh` + `nginx.conf.tpl` — upstream, proxy_pass, security headers, rate limit
+- [ ] `certbot.sh` — `certbot --nginx -d $DOMAIN --non-interactive --agree-tos -m $EMAIL`
+- [ ] `verify.sh` — curl con exit-code; imprime resumen de lo instalado
+- [ ] `setup.sh` — orquestador con colores, progress steps y rollback en caso de fallo
+- [ ] Integración con skill `deploy-provision` (M21) — el agente puede ejecutar y monitorizar cada paso
+- [ ] README en `scripts/deploy/README.md` — requisitos, ejemplo de uso, troubleshooting
 
 ---
 

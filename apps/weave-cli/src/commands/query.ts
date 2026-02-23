@@ -1,6 +1,7 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { CLIArgs, CommandResult, CliCommand } from '../types';
+import { resolveProjectRoot } from '../utils';
 
 interface GraphNode {
   id: string;
@@ -47,7 +48,7 @@ export class QueryCommand implements CliCommand {
         };
       }
 
-      const projectRoot = process.cwd();
+      const projectRoot = resolveProjectRoot();
       const weaveDir = join(projectRoot, '.weave');
       const graphPath = join(weaveDir, 'graph.json');
 

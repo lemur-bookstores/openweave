@@ -1,6 +1,7 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { CLIArgs, CommandResult, CliCommand } from '../types';
+import { resolveProjectRoot } from '../utils';
 
 interface OrphanEntity {
   id: string;
@@ -44,7 +45,7 @@ export class OrphansCommand implements CliCommand {
 
   async execute(args: CLIArgs): Promise<CommandResult> {
     try {
-      const projectRoot = process.cwd();
+      const projectRoot = resolveProjectRoot();
       const weaveDir = join(projectRoot, '.weave');
       const configPath = join(weaveDir, 'config.json');
 

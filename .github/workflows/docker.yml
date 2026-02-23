@@ -1,0 +1,107 @@
+name: Docker · weave-link
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*.*.*"
+    paths:
+      - "packages/weave-link/**"
+      - "packages/weave-graph/**"
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - "pnpm-lock.yaml"
+      - "tsconfig.json"
+      - ".dockerignore"
+      - ".github/workflows/docker.yml"
+  workflow_dispatch:
+    inputs:
+      push:
+        description: "Push image to GHCR?"
+        required: false
+        default: "true"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/weave-link
+
+jobs:
+  build-and-push:
+    name: Build & Push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      # ── 1. Checkout ───────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Multi-arch support (QEMU + Buildx) ────────────────────────────
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # ── 3. Authenticate with GHCR ─────────────────────────────────────────
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 4. Generate image tags & labels ───────────────────────────────────
+      #    • latest  → every push to main
+      #    • v1.2.3  → semver Git tag
+      #    • sha-<7> → every build (pinnable digest)
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+          labels: |
+            org.opencontainers.image.title=WeaveLink MCP Server
+            org.opencontainers.image.description=Model Context Protocol server — OpenWeave knowledge graph
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.licenses=MIT
+
+      # ── 5. Cache (speed up repeated builds) ──────────────────────────────
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-weave-link-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-weave-link-
+
+      # ── 6. Build (and push on non-PR events) ─────────────────────────────
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: packages/weave-link/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' && (github.event.inputs.push != 'false') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          build-args: |
+            BUILD_DATE=${{ fromJSON(steps.meta.outputs.json).labels['org.opencontainers.image.created'] }}
+            GIT_SHA=${{ github.sha }}
+
+      # ── 7. Rotate cache (avoid unbounded growth) ──────────────────────────
+      - name: Move Docker cache
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache

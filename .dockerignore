@@ -1,0 +1,43 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# .dockerignore  (build context: repo root)
+# Used by packages/weave-link/Dockerfile
+# ──────────────────────────────────────────────────────────────────────────────
+
+# Node artefacts
+node_modules/
+**/node_modules/
+**/dist/
+**/.cache/
+
+# Test outputs / coverage
+**/coverage/
+**/*.test.ts
+**/*.test.js
+
+# Dev tooling
+.git/
+.gitignore
+.eslintrc*
+.prettierrc*
+*.log
+
+# Apps that are NOT needed for the weave-link image
+apps/
+
+# Non-essential packages
+packages/weave-lint/
+packages/weave-embed/
+packages/weave-path/
+packages/weave-check/
+packages/weave-cli/
+packages/weave-dashboard/
+
+# Docs
+docs/
+*.md
+!packages/weave-link/README.md
+
+# Environment files
+.env
+.env.*
+!.env.example

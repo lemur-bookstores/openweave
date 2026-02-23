@@ -3,6 +3,7 @@ import { NodeBuilder } from "./node";
 import { EdgeBuilder } from "./edge";
 import { CompressionManager, ErrorSuppression } from "./compression";
 import { SynapticEngine } from "./synaptic-engine";
+import { HebbianWeights } from "./hebbian-weights";
 
 /**
  * ContextGraphManager
@@ -21,6 +22,7 @@ export class ContextGraphManager {
   private createdAt: Date;
   private updatedAt: Date;
   private synapticEngine?: SynapticEngine;
+  private hebbianWeights?: HebbianWeights;
 
   constructor(chatId: string, compressionThreshold?: number) {
     this.chatId = chatId;
@@ -42,6 +44,15 @@ export class ContextGraphManager {
    */
   setSynapticEngine(engine: SynapticEngine): void {
     this.synapticEngine = engine;
+  }
+
+  /**
+   * Attach a HebbianWeights instance to this graph. Once set,
+   * `queryNodesByLabel()` and `queryNodesByType()` will automatically
+   * strengthen edges between co-activated result nodes.
+   */
+  setHebbianWeights(hw: HebbianWeights): void {
+    this.hebbianWeights = hw;
   }
 
   /**
@@ -215,14 +226,34 @@ export class ContextGraphManager {
       }
     }
 
-    return results.sort((a, b) => (b.frequency ?? 0) - (a.frequency ?? 0));
+    const sorted = results.sort((a, b) => (b.frequency ?? 0) - (a.frequency ?? 0));
+
+    // Hebbian strengthening — reinforce edges between co-activated nodes
+    if (this.hebbianWeights && sorted.length >= 2) {
+      this.hebbianWeights.strengthenCoActivated(
+        sorted.map((n) => n.id),
+        this
+      );
+    }
+
+    return sorted;
   }
 
   /**
    * Query nodes by type
    */
   queryNodesByType(type: NodeType): Node[] {
-    return Array.from(this.nodes.values()).filter((node) => node.type === type);
+    const results = Array.from(this.nodes.values()).filter((node) => node.type === type);
+
+    // Hebbian strengthening — reinforce edges between co-activated nodes
+    if (this.hebbianWeights && results.length >= 2) {
+      this.hebbianWeights.strengthenCoActivated(
+        results.map((n) => n.id),
+        this
+      );
+    }
+
+    return results;
   }
 
   /**
@@ -430,5 +461,7 @@ export { CompressionManager, ErrorSuppression } from "./compression";
 export type { CompressionStats } from "./compression";
 export { SynapticEngine, tokenize, jaccardSimilarity } from "./synaptic-engine";
 export type { SynapticOptions, SynapticGraph } from "./synaptic-engine";
+export { HebbianWeights } from "./hebbian-weights";
+export type { HebbianOptions, HebbianGraph } from "./hebbian-weights";
 
       

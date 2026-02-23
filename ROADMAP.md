@@ -46,7 +46,8 @@ openweave/
 ├── apps/
 │   ├── agent-core/          # 🤖 Main OpenWeave Agent (system prompt + orchestration)
 │   ├── weave-cli/           # ⌨️  CLI tool — interact with OpenWeave from terminal
-│   └── weave-dashboard/     # 🖥️  Web UI — visualize graph, milestones & sessions
+│   ├── weave-dashboard/     # 🖥️  Web UI — visualize graph, milestones & sessions
+│   └── weave-vscode/        # 🧩 VS Code Extension — WeaveGraph sidebar & commands (M25)
 │
 ├── packages/
 │   ├── weave-graph/         # 🧠 WeaveGraph — knowledge graph engine & memory manager
@@ -54,6 +55,7 @@ openweave/
 │   ├── weave-path/          # 🗺️  WeavePath — milestone & sub-task planner
 │   ├── weave-link/          # 🔌 WeaveLink — MCP server for client integrations
 │   ├── weave-tools/         # 🔧 WeaveTools — external tool registry & adapters (M24)
+│   ├── weave-cline/         # 🤖 WeaveCline — Cline AI assistant plugin (M26)
 │   ├── weave-check/         # ✅ WeaveCheck — eval suite & QA framework
 │   ├── weave-provider/      # 🔌 Interfaz abstracta de persistencia (contrato IWeaveProvider)
 │   ├── weave-provider-json/     # 📄 Implementación JSON local (default, zero-config)
@@ -220,8 +222,8 @@ Leer docs\SKILL-package-setup.md
 - ✅ `ConfigGenerator` — generates `mcpServers` entries for stdio and HTTP modes
 - ✅ `weave-link install <claude|cursor>` CLI command
 - ✅ `weave-link uninstall <claude|cursor>` CLI command
-- 💭 VS Code extension with WeaveGraph sidebar
-- 💭 Cline plugin
+- � VS Code extension with WeaveGraph sidebar → **M25**
+- 🔜 Cline plugin → **M26**
 
 ### M9 · Remote WeaveLink ✅
 - ✅ `HttpTransport` — HTTP server using zero runtime dependencies (Node built-ins only)
@@ -719,6 +721,247 @@ WEAVE_PROVIDER=sqlite        # provider de persistencia (sqlite | postgres | ...
 - [ ] `setup.sh` — orquestador con colores, progress steps y rollback en caso de fallo
 - [ ] Integración con skill `deploy-provision` (M21) — el agente puede ejecutar y monitorizar cada paso
 - [ ] README en `scripts/deploy/README.md` — requisitos, ejemplo de uso, troubleshooting
+
+---
+
+## PHASE 11 — IDE Integrations `v1.1.0`
+
+> Goal: Integrar OpenWeave nativamente en el flujo de trabajo del desarrollador dentro de VS Code
+> y en el ciclo de asistentes de IA de código como Cline — sin salir del editor.
+> Status: M25/M26 planned
+
+---
+
+### M25 · VS Code Extension — WeaveGraph Sidebar 🔜
+
+Extensión oficial de OpenWeave para VS Code. Expone el grafo de conocimiento,
+las sesiones activas y los milestones directamente en el sidebar del editor.
+Se conecta al servidor WeaveLink HTTP local (levantado con `weave-link start`).
+
+**Nuevo app:** `apps/weave-vscode/`
+
+```
+apps/weave-vscode/
+├── package.json              ← vscode engine ≥ 1.85, contributes: views, commands, config
+├── tsconfig.json
+└── src/
+    ├── extension.ts          ← activate() / deactivate() — entry point del ciclo de vida
+    ├── sidebar/
+    │   ├── GraphWebviewPanel.ts      ← WebviewPanel con el GraphRenderer de weave-dashboard
+    │   ├── MilestoneTreeProvider.ts  ← TreeDataProvider: árbol de fases → milestones → tareas
+    │   └── SessionTreeProvider.ts   ← TreeDataProvider: sesiones activas por chat_id
+    ├── commands/
+    │   ├── init.ts           ← `openweave.init` — inicializa .weave/ en el workspace
+    │   ├── query.ts          ← `openweave.query` — quick-pick de búsqueda en el grafo
+    │   ├── save-node.ts      ← `openweave.saveNode` — formulario para añadir nodo manualmente
+    │   └── connect.ts        ← `openweave.connect` — configura URL y API Key del servidor
+    ├── status-bar/
+    │   └── WeaveStatusBar.ts ← ítem en status bar: sesión activa + nodos + estado de conexión
+    └── client/
+        └── WeaveExtensionClient.ts ← wrapper de WeaveDashboardClient con reconexión automática
+```
+
+**`package.json` — contribuciones VS Code:**
+
+```jsonc
+{
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [{ "id": "openweave", "title": "OpenWeave", "icon": "media/weave.svg" }]
+    },
+    "views": {
+      "openweave": [
+        { "id": "openweave.graph",      "name": "Knowledge Graph",  "type": "webview" },
+        { "id": "openweave.milestones", "name": "Milestones",       "type": "tree"    },
+        { "id": "openweave.sessions",  "name": "Sessions",         "type": "tree"    }
+      ]
+    },
+    "commands": [
+      { "command": "openweave.init",      "title": "OpenWeave: Init Project"    },
+      { "command": "openweave.query",     "title": "OpenWeave: Query Graph"     },
+      { "command": "openweave.saveNode",  "title": "OpenWeave: Save Node"       },
+      { "command": "openweave.connect",   "title": "OpenWeave: Connect Server"  },
+      { "command": "openweave.refresh",   "title": "OpenWeave: Refresh"         }
+    ],
+    "configuration": {
+      "properties": {
+        "openweave.serverUrl":  { "type": "string",  "default": "http://localhost:3000" },
+        "openweave.apiKey":     { "type": "string",  "default": ""                     },
+        "openweave.autoStart":  { "type": "boolean", "default": true                   },
+        "openweave.refreshMs":  { "type": "number",  "default": 5000                   }
+      }
+    }
+  }
+}
+```
+
+**Flujo de datos:**
+```
+VS Code Sidebar
+    │
+    ▼
+WeaveExtensionClient  ──HTTP──►  WeaveLink (localhost:3000)
+    │                                  │
+    ├── GraphWebviewPanel  ◄── GET /graph-snapshot
+    ├── MilestoneTreeProvider ◄── POST /tools/call (get_next_action)
+    └── SessionTreeProvider   ◄── GET /sessions
+```
+
+**Dependencias clave:**
+- `WeaveDashboardClient` de `@openweave/weave-dashboard` (M10) ✅
+- `GraphRenderer` (D3) embebido en el Webview via CDN o bundled
+- `vscode` peerDependency — zero deps en producción fuera de VS Code
+- SSE stream (`GET /events`) para live-refresh sin polling
+
+**Distribución:**
+- Publicar como `.vsix` en [VS Code Marketplace](https://marketplace.visualstudio.com/)
+- GitHub Release adjunta el `.vsix` en cada tag semver
+- `vsce package` en CI (`apps/weave-vscode/.github/workflows/publish.yml`)
+
+**Tareas de implementación:**
+- [ ] Scaffold `apps/weave-vscode/` — `package.json` con `vscode` engine ≥ 1.85
+- [ ] `extension.ts` — `activate()`: registra comandos, providers, status bar
+- [ ] `WeaveExtensionClient` — wrapper `WeaveDashboardClient` con retry y SSE keepalive
+- [ ] `WeaveStatusBar` — estado de conexión + sesión activa en barra inferior
+- [ ] `SessionTreeProvider` — `TreeDataProvider<SessionItem>` con refresh on SSE event
+- [ ] `MilestoneTreeProvider` — `TreeDataProvider<MilestoneItem>` con íconos por status
+- [ ] `GraphWebviewPanel` — Webview con HTML+D3 del `GraphRenderer` de weave-dashboard
+- [ ] Comandos: `init`, `query` (QuickPick), `saveNode` (InputBox flow), `connect`
+- [ ] Configura `openweave.autoStart` para levantar `weave-link start` al abrir workspace
+- [ ] Tests con `@vscode/test-electron` — mocks de vscode API
+- [ ] CI: `vsce package` + upload `.vsix` como artifact
+- [ ] Docs: `apps/weave-vscode/README.md` — instalación, configuración, capturas de pantalla
+- [ ] Unit tests: ≥ 8 tests (client, tree providers, status bar, command handlers)
+
+---
+
+### M26 · Cline Plugin 🔜
+
+Plugin oficial de OpenWeave para [Cline](https://github.com/cline/cline) — el asistente de IA
+para VS Code. Expone las 7 herramientas nativas de OpenWeave al loop de Cline, permitiéndole
+guardar nodos, consultar el grafo y actualizar milestones de forma autónoma durante una sesión
+de codificación sin salir de VS Code.
+
+**Nuevo paquete:** `packages/weave-cline/`
+
+```
+packages/weave-cline/
+├── package.json
+├── tsconfig.json
+└── src/
+    ├── index.ts              ← barrel: exporta ClinePlugin y defaultTools
+    ├── plugin.ts             ← ClinePlugin class — implementa la interfaz de Cline
+    ├── tools.ts              ← mapea ToolDefinition[] de OpenWeave al formato de Cline
+    ├── client.ts             ← cliente HTTP ligero hacia WeaveLink (sin deps extra)
+    └── weave-cline.test.ts
+```
+
+**Arquitectura de integración:**
+
+```
+Cline (VS Code Extension)
+    │
+    ├── ClinePlugin.getTools()      ← retorna las 7 herramientas OpenWeave en formato Cline
+    │
+    └── ClinePlugin.executeTool()   ── HTTP POST ──►  WeaveLink :3000/tools/call
+                                                            │
+                                                      WeaveGraph / WeavePath
+```
+
+**`ClinePlugin` interface:**
+```typescript
+export interface ClinePluginManifest {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  tools: ClineTool[];
+}
+
+export class ClinePlugin {
+  constructor(options: { serverUrl?: string; apiKey?: string }) {}
+
+  /** Devuelve el manifest completo con las 7 tools en formato Cline */
+  getManifest(): ClinePluginManifest;
+
+  /** Ejecuta una tool call y retorna el resultado como string */
+  executeTool(name: string, args: Record<string, unknown>): Promise<string>;
+
+  /** Health-check: verifica que WeaveLink está disponible */
+  isAvailable(): Promise<boolean>;
+}
+```
+
+**Herramientas expuestas a Cline (mapeadas desde `BUILTIN_TOOLS`):**
+
+| OpenWeave tool | Descripción para Cline |
+|---|---|
+| `save_node` | Save a concept, decision or error to the knowledge graph |
+| `query_graph` | Search the knowledge graph by keyword |
+| `suppress_error` | Mark an error as resolved with a correction note |
+| `update_roadmap` | Update milestone or sub-task status |
+| `get_session_context` | Retrieve current session state and graph snapshot |
+| `get_next_action` | Get the recommended next sub-task to work on |
+| `list_orphans` | Detect unused exports in the current project |
+
+**Configuración en Cline (`cline_mcp_settings.json` alternativo via plugin):**
+```jsonc
+// .vscode/settings.json
+{
+  "cline.plugins": [
+    {
+      "id": "openweave",
+      "package": "@openweave/weave-cline",
+      "config": {
+        "serverUrl": "http://localhost:3000",
+        "apiKey": "${env:WEAVE_API_KEY}"
+      }
+    }
+  ]
+}
+```
+
+**Alternativa MCP (recomendada si Cline soporta MCP):**
+
+Cline ya soporta el protocolo MCP nativo. En ese caso, `weave-cline` actúa como
+un thin wrapper que genera la entrada `mcpServers` para `cline_mcp_settings.json`
+apuntando al `WeaveLink` stdio/HTTP existente (sin código extra):
+
+```jsonc
+// ~/.vscode-server/data/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json
+{
+  "mcpServers": {
+    "openweave": {
+      "command": "node",
+      "args": ["/path/to/weave-link/dist/index.js"],
+      "env": { "WEAVE_API_KEY": "<key>" }
+    }
+  }
+}
+```
+
+`weave-cline` instalará esta configuración automáticamente con:
+```bash
+weave-link install cline          # nuevo subcommand en M8 actualizado
+weave-link uninstall cline
+```
+
+**Relación con M8:**
+- M8 ya tiene `ClaudeDesktopInstaller` y `CursorInstaller` — `ClineInstaller` sigue el mismo patrón
+- Se añade `ClineInstaller` a `packages/weave-link/src/installers/cline-installer.ts`
+- Se registra en `weave-link install <claude|cursor|cline>`
+
+**Tareas de implementación:**
+- [ ] Investigar API de plugins de Cline (verificar si es MCP-native o custom plugin system)
+- [ ] `ClineInstaller` en `packages/weave-link/src/installers/cline-installer.ts` — mismo patrón que `CursorInstaller`
+- [ ] `weave-link install cline` / `weave-link uninstall cline` CLI subcommands
+- [ ] Si Cline tiene plugin API custom: scaffold `packages/weave-cline/` con `ClinePlugin`
+- [ ] `tools.ts` — adapta `BUILTIN_TOOLS` (ToolDefinition[]) al formato de tool definition de Cline
+- [ ] `client.ts` — HTTP client ligero: `POST /tools/call` con auth y timeout
+- [ ] `plugin.ts` — `ClinePlugin.executeTool()` con error handling + JSON parse
+- [ ] Docs: `packages/weave-cline/README.md` — instalación en 3 pasos, ejemplo de sesión
+- [ ] Unit tests: ≥ 8 tests (manifest, executeTool mock, isAvailable, error cases)
+- [ ] Integración E2E: Cline invoca `save_node` → WeaveLink → verificar nodo en grafo
 
 ---
 

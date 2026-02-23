@@ -361,16 +361,17 @@ Leer docs\SKILL-package-setup.md
 > y WeavePath pasan a ser agnósticos del medio de almacenamiento.
 > Status: Planned
 
-### M13 · weave-provider — Contrato de Persistencia 🔜
-- 🔜 Definir interfaz `IWeaveProvider<T>` en TypeScript
-  - `get(id)` · `set(id, value)` · `delete(id)` · `list(prefix?)` · `clear(prefix?)` · `close()`
-- 🔜 Definir interfaz equivalente en Python (para posibles bindings futuros)
-- 🔜 Mecanismo de registro y resolución de providers via `WEAVE_PROVIDER` en `.env`
-- 🔜 Migrar `JsonProvider` desde implementación actual de `weave-graph` (zero breaking changes)
-- 🔜 `MemoryProvider` (`Map<>`) para tests y sesiones efímeras
-- 🔜 Inyección opcional en `WeaveGraph`, `SessionLifecycle`, `VectorStore`, `WeavePath`
-  - Si no se inyecta un provider, usa `JsonProvider` como fallback (backward compatible)
-- 🔜 Unit tests del contrato: test suite compartida que valida cualquier implementación
+### M13 · weave-provider — Contrato de Persistencia ✅
+- ✅ Interfaz `IWeaveProvider<T>` definida en TypeScript
+  - `get(key)` · `set(key, value)` · `delete(key)` · `list(prefix?)` · `clear(prefix?)` · `close()`
+- ✅ `MemoryProvider` (`Map<>`) para tests y sesiones efímeras
+- ✅ `JsonProvider` — migración directa desde `weave-graph/PersistenceManager`; zero breaking changes
+  - Key convention `graph:<chatId>` preserva backward-compat total
+- ✅ `ProviderRegistry` — resolución via `WEAVE_PROVIDER` env var; registro de factories en runtime
+- ✅ `resolveProvider<T>()` — helper para obtener el provider configurado
+- ✅ Inyección opcional en `WeaveGraph/PersistenceManager` (JsonProvider como fallback)
+- ✅ Inyección opcional en `agent-core/SessionLifecycle` + async API (`initAsync/saveAsync/loadAsync/listSessionIdsAsync`)
+- ✅ Suite de contrato compartida: 16 tests × 2 providers + extras + registry = 45 tests
 
 ### M14 · Providers Embebidos 🔜
 - 🔜 `weave-provider-sqlite` — `better-sqlite3` (zero native deps en la mayoría de plataformas)

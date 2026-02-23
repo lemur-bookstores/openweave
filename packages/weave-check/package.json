@@ -1,0 +1,42 @@
+{
+  "name": "@openweave/weave-check",
+  "version": "0.1.0",
+  "description": "WeaveCheck — Eval suite & QA framework for OpenWeave agents",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest",
+    "lint": "eslint src --max-warnings 0",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "weave",
+    "eval",
+    "qa",
+    "kpi",
+    "metrics",
+    "agent"
+  ],
+  "author": "OpenWeave Contributors",
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.7.2",
+    "vitest": "3.0.0"
+  },
+  "dependencies": {}
+}

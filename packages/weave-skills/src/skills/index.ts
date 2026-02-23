@@ -1,14 +1,27 @@
+// M20 — Core Dev Skills
 export { autoFixSkill } from './auto-fix.js';
 export { codeReviewSkill } from './code-review.js';
 export { testGenSkill } from './test-gen.js';
 export { docsGenSkill } from './docs-gen.js';
 export { refactorSkill } from './refactor.js';
 
+// M21 — DevOps Skills
+export { pipelineAwareSkill } from './pipeline-aware.js';
+export { depAuditSkill } from './dep-audit.js';
+export { perfProfileSkill } from './perf-profile.js';
+export { containerAdvisorSkill } from './container-advisor.js';
+export { deployProvisionSkill } from './deploy-provision.js';
+
 import { autoFixSkill } from './auto-fix.js';
 import { codeReviewSkill } from './code-review.js';
 import { testGenSkill } from './test-gen.js';
 import { docsGenSkill } from './docs-gen.js';
 import { refactorSkill } from './refactor.js';
+import { pipelineAwareSkill } from './pipeline-aware.js';
+import { depAuditSkill } from './dep-audit.js';
+import { perfProfileSkill } from './perf-profile.js';
+import { containerAdvisorSkill } from './container-advisor.js';
+import { deployProvisionSkill } from './deploy-provision.js';
 
 export const CORE_DEV_SKILLS = [
   autoFixSkill,
@@ -16,4 +29,12 @@ export const CORE_DEV_SKILLS = [
   testGenSkill,
   docsGenSkill,
   refactorSkill,
+];
+
+export const DEVOPS_SKILLS = [
+  pipelineAwareSkill,
+  depAuditSkill,
+  perfProfileSkill,
+  containerAdvisorSkill,
+  deployProvisionSkill,
 ];

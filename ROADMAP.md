@@ -509,16 +509,16 @@ Módulos de asistencia al desarrollo del día a día. Cada uno es un `SkillModul
 
 ---
 
-### M21 · DevOps Skills 🔜
+### M21 · DevOps Skills ✅
 
 Módulos orientados al ciclo de integración y despliegue.
 
-- [ ] **`pipeline-aware`** — parsea logs de CI/CD (GitHub Actions, GitLab CI) y diagnostica fallos con causa raíz + acción sugerida
-- [ ] **`dep-audit`** — escanea `package.json` de todo el workspace, detecta dependencias con versiones obsoletas o CVEs conocidos (vía `npm audit` + advisory DB), propone upgrades
-- [ ] **`perf-profile`** — analiza tiempos de build, test y bundle; identifica bottlenecks e informa en formato de tabla jerarquizada
-- [ ] **`container-advisor`** — audita `Dockerfile`s con checklist de buenas prácticas (multi-stage, non-root, COPY scope, HEALTHCHECK, pin de versiones base)
-- [ ] **`deploy-provision`** — guía interactiva de aprovisionamiento de producción: invoca `scripts/deploy/setup.sh`, valida pre-requisitos (dominio DNS, puertos, Docker), reporta estado de cada paso y sugiere correcciones ante fallos; integra con M23
-- [ ] Unit tests: ≥ 5 tests por skill
+- [x] **`pipeline-aware`** — parsea logs de CI/CD (GitHub Actions, GitLab CI) y diagnostica fallos con causa raíz + acción sugerida
+- [x] **`dep-audit`** — escanea `package.json` de todo el workspace, detecta dependencias con versiones obsoletas o CVEs conocidos (vía `npm audit` + advisory DB), propone upgrades
+- [x] **`perf-profile`** — analiza tiempos de build, test y bundle; identifica bottlenecks e informa en formato de tabla jerarquizada
+- [x] **`container-advisor`** — audita `Dockerfile`s con checklist de buenas prácticas (multi-stage, non-root, COPY scope, HEALTHCHECK, pin de versiones base)
+- [x] **`deploy-provision`** — guía interactiva de aprovisionamiento de producción: invoca `scripts/deploy/setup.sh`, valida pre-requisitos (dominio DNS, puertos, Docker), reporta estado de cada paso y sugiere correcciones ante fallos; integra con M23
+- [x] Unit tests: ≥ 5 tests por skill · 50 tests M21 · 122 total en weave-skills
 
 ---
 

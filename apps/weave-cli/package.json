@@ -33,7 +33,8 @@
     "@openweave/weave-lint": "workspace:*",
     "@openweave/weave-link": "workspace:*",
     "@openweave/weave-provider": "workspace:*",
-    "@openweave/weave-skills": "workspace:*"
+    "@openweave/weave-skills": "workspace:*",
+    "@openweave/weave-tools": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "22.10.1",

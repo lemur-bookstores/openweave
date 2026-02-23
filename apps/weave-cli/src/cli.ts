@@ -10,6 +10,7 @@ import { errorsCommand } from './commands/errors';
 import { saveNodeCommand } from './commands/save-node';
 import { migrateCommand } from './commands/migrate';
 import { skillsCommand } from './commands/skills';
+import { toolsCommand } from './commands/tools';
 
 /**
  * Weave CLI - Main Entry Point
@@ -25,6 +26,7 @@ const commands: Record<string, CliCommand> = {
   'save-node': saveNodeCommand,
   migrate: migrateCommand,
   skills: skillsCommand,
+  tools: toolsCommand,
 };
 
 function parseArgs(): CLIArgs {
@@ -79,6 +81,7 @@ Commands:
   errors                Show error registry
   save-node             Manually add a node to the graph
   skills                Manage skill modules (list, enable, disable, info)
+  tools                 Manage external tool adapters (add, remove, list, info, test)
   migrate               Migrate data between storage providers
 
 Global Options:

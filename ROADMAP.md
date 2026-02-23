@@ -535,7 +535,7 @@ Módulos que mejoran el flujo de trabajo individual y en equipo.
 
 ---
 
-### M24 · External Tool Registry & Adapters 🔜
+### M24 · External Tool Registry & Adapters ✅
 
 Sistema de extensibilidad que permite a usuarios y desarrolladores registrar
 cualquier herramienta externa (calendario, email, WhatsApp, Slack, APIs REST, etc.)
@@ -635,19 +635,19 @@ TypeScript. Si solo se provee el manifest, el bridge usa el adaptador HTTP/MCP.
 - Timeouts configurables por herramienta (`timeout_ms`, default 10 000 ms)
 
 **Tareas de implementación:**
-- [ ] `packages/weave-tools/` — scaffold: `package.json`, `tsconfig.json`, barrel
-- [ ] `types.ts` — `ToolManifest`, `AdapterType`, `ExternalToolBridge` interfaces
-- [ ] `http-adapter.ts` — fetch con auth (bearer / api-key / basic), timeout, error wrapping
-- [ ] `mcp-adapter.ts` — bridge stdio y HTTP a otro servidor MCP
-- [ ] `script-adapter.ts` — `child_process.spawn`, parse JSON stdout, stderr → error
-- [ ] `tool-loader.ts` — scan `.weave/tools/*.tool.json` + packages `@openweave-tools/*`
-- [ ] `tool-store.ts` — CRUD sobre `.weave/tools.json` (add / remove / list)
-- [ ] `tool-bridge.ts` — `ExternalToolBridge.loadAll(registry)` llamado desde `AgentCore.init()`
-- [ ] `validateManifest()` — JSON Schema validation del manifest
-- [ ] CLI commands en `weave-cli`: `weave tools add|remove|list|test|info`
-- [ ] Integración en `AgentCore` — hook `onInit` que invoca `ToolBridge.loadAll()`
-- [ ] Docs: `docs/external-tools.md` — guía para publicar un `@openweave-tools/*`
-- [ ] Unit tests: ≥ 5 tests por adaptador · loader · store · CLI commands
+- [x] `packages/weave-tools/` — scaffold: `package.json`, `tsconfig.json`, barrel
+- [x] `types.ts` — `ToolManifest`, `AdapterType`, `ExternalToolBridge` interfaces
+- [x] `http-adapter.ts` — fetch con auth (bearer / api-key / basic), timeout, error wrapping
+- [x] `mcp-adapter.ts` — bridge stdio y HTTP a otro servidor MCP
+- [x] `script-adapter.ts` — `child_process.spawn`, parse JSON stdout, stderr → error
+- [x] `tool-loader.ts` — scan `.weave/tools/*.tool.json` + packages `@openweave-tools/*`
+- [x] `tool-store.ts` — CRUD sobre `.weave/tools.json` (add / remove / list)
+- [x] `tool-bridge.ts` — `ExternalToolBridge.loadAll(registry)` llamado desde `AgentCore.init()`
+- [x] `validateManifest()` — JSON Schema validation del manifest
+- [x] CLI commands en `weave-cli`: `weave tools add|remove|list|test|info`
+- [ ] Integración en `AgentCore` — hook `onInit` que invoca `ToolBridge.loadAll()` (post-M24)
+- [ ] Docs: `docs/external-tools.md` — guía para publicar un `@openweave-tools/*` (post-M24)
+- [x] Unit tests: ≥ 5 tests por adaptador · loader · store · CLI commands (61 tests)
 
 ---
 

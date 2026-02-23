@@ -472,20 +472,27 @@ Leer docs\SKILL-package-setup.md
 
 ---
 
-### M19 · Skill Module Registry 🔜
+### M19 · Skill Module Registry �
 
 Infraestructura que permite registrar, activar y componer módulos de habilidades de forma declarativa.
 
-- [ ] `SkillModule` interface — contrato base: `id`, `name`, `description`, `enabled`, `execute(context)`
-- [ ] `SkillRegistry` class — registro central de módulos disponibles
-  - `register(module)` — añade un skill al registry
+- [x] `SkillModule` interface — contrato base: `id`, `name`, `description`, `version`, `enabled`, `tags?`, `execute(context)`
+- [x] `SkillRegistry` class — registro central de módulos disponibles
+  - `register(module)` / `replace(module)` / `unregister(id)` — lifecycle completo
   - `enable(id)` / `disable(id)` — activa/desactiva en runtime
-  - `list()` — devuelve todos los módulos con su estado
-- [ ] Config en `.weave.config.json` — sección `skills: { "auto-fix": true, "code-review": false, ... }`
-- [ ] CLI: `weave skills list` · `weave skills enable <id>` · `weave skills disable <id>`
-- [ ] `SkillContext` — objeto de contexto que se inyecta en cada skill: `{ files, graph, session, git }`
-- [ ] Zero breaking changes — si no hay config, el agente corre sin ningún skill activo
-- [ ] Unit tests: registry CRUD · enable/disable · config loader · CLI commands
+  - `list()` / `listEnabled()` / `get(id)` / `has(id)` / `size` — query API
+  - `execute(id, ctx)` / `executeSafe(id, ctx)` / `executeAll(ctx)` — dispatch tipado
+  - `loadFromConfig(cfg)` / `toConfig()` — integración con SkillConfig
+- [x] `SkillContext` — `{ projectRoot, files, graph, session, git }` — inyectado en cada skill
+- [x] `SkillGitContext` — `{ branch, stagedFiles, unstagedFiles, stagedDiff }`
+- [x] `SkillResult` — `{ success, output, data?, error? }`
+- [x] `SkillConfig` / `WeaveConfig` — interfaces de configuración
+- [x] Config en `.weave.config.json` (raíz del proyecto) — sección `skills: { "auto-fix": true, ... }`
+- [x] `ConfigLoader` — `loadSkillConfig` · `saveSkillConfig` · `setSkillEnabled` · `mergeSkillConfig` · `configExists`
+- [x] CLI: `weave skills list` · `weave skills enable <id>` · `weave skills disable <id>` · `weave skills info <id>`
+- [x] Zero breaking changes — si no hay config, el agente corre sin ningún skill activo
+- [x] `packages/weave-skills/` — scaffold: `package.json`, `tsconfig.json`, `README.md`, barrel
+- [x] Unit tests: registry CRUD · enable/disable · execute · executeAll · loadFromConfig · config loader I/O
 
 ---
 

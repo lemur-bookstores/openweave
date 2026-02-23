@@ -1,6 +1,6 @@
 {
   "name": "@openweave/weave-embed",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Semantic embedding service with local transformer support for OpenWeave",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

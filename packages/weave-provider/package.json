@@ -1,6 +1,6 @@
 {
   "name": "@openweave/weave-provider",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Storage-agnostic persistence contract for OpenWeave — IWeaveProvider<T> interface + built-in implementations",
   "private": true,
   "license": "MIT",

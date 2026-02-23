@@ -7,7 +7,7 @@
  * Has no DOM or network dependencies — suitable for unit testing in Node.
  */
 
-import type { GraphSnapshot, DashboardNode, DashboardEdge, GraphDiff, DiffEntry } from './types';
+import type { GraphSnapshot, DashboardNode, GraphDiff, DiffEntry } from './types';
 
 // ──────────────────────────────────────────────────────────────────────────────
 

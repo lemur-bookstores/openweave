@@ -200,7 +200,6 @@ export class ToolRegistry {
     context: ToolExecutionContext
   ): Promise<ToolResult> {
     const registered = this.tools.get(call.name);
-    const isError = !registered;
     const executedAt = new Date().toISOString();
 
     if (!registered) {

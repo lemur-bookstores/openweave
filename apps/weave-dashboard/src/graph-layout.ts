@@ -8,7 +8,7 @@
  * after running `iterations` simulation steps in a `width × height` canvas.
  */
 
-import type { GraphSnapshot, DashboardNode, LayoutNode, LayoutEdge, GraphLayout } from './types';
+import type { GraphSnapshot, LayoutNode, LayoutEdge, GraphLayout } from './types';
 
 // ──────────────────────────────────────────────────────────────────────────────
 

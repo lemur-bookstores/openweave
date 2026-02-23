@@ -5,7 +5,7 @@
  * Pure data layer — no DOM. The rendering is done in app.ts.
  */
 
-import type { GraphSnapshot, DashboardNode, DashboardEdge } from './types';
+import type { GraphSnapshot, DashboardNode } from './types';
 
 // ──────────────────────────────────────────────────────────────────────────────
 

@@ -25,7 +25,7 @@ export class StatusCommand implements CliCommand {
 
   async execute(args: CLIArgs): Promise<CommandResult> {
     try {
-      const projectRoot = resolveProjectRoot();
+      const projectRoot = resolveProjectRoot(args.flags.root as string | undefined);
       const weaveDir = join(projectRoot, '.weave');
       const configPath = join(weaveDir, 'config.json');
 

@@ -2,7 +2,7 @@
   "name": "@openweave/weave-vscode",
   "displayName": "OpenWeave",
   "description": "OpenWeave VS Code Extension — WeaveGraph sidebar, milestones & MCP tools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "publisher": "openweave",
   "private": true,
   "license": "MIT",

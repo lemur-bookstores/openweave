@@ -3,8 +3,10 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
+    "noEmit": false,
     "allowImportingTsExtensions": false,
-    "module": "ESNext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
     "paths": { "@openweave/*": ["../../packages/*/dist"] }
   },
   "include": ["src"],

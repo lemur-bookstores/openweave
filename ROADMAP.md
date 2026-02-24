@@ -46,8 +46,9 @@ openweave/
 ├── apps/
 │   ├── agent-core/          # 🤖 Main OpenWeave Agent (system prompt + orchestration)
 │   ├── weave-cli/           # ⌨️  CLI tool — interact with OpenWeave from terminal
-│   ├── weave-dashboard/     # 🖥️  Web UI — visualize graph, milestones & sessions
-│   └── weave-vscode/        # 🧩 VS Code Extension — WeaveGraph sidebar & commands (M25)
+│   ├── weave-dashboard/     # 🖥️  Web UI — Svelte 5 + Vite + D3 graph visualizer (M27)
+│   ├── weave-vscode/        # 🧩 VS Code Extension — WeaveGraph sidebar & commands (M25)
+│   └── weave-app/           # 🖥️  Desktop app — Tauri 2 + Node sidecar + Svelte UI (M28)
 │
 ├── packages/
 │   ├── weave-graph/         # 🧠 WeaveGraph — knowledge graph engine & memory manager
@@ -222,7 +223,7 @@ Leer docs\SKILL-package-setup.md
 - ✅ `ConfigGenerator` — generates `mcpServers` entries for stdio and HTTP modes
 - ✅ `weave-link install <claude|cursor>` CLI command
 - ✅ `weave-link uninstall <claude|cursor>` CLI command
-- � VS Code extension with WeaveGraph sidebar → **M25**
+- ✅ VS Code extension with WeaveGraph sidebar → **M25**
 - 🔜 Cline plugin → **M26**
 
 ### M9 · Remote WeaveLink ✅
@@ -735,11 +736,12 @@ WEAVE_PROVIDER=sqlite        # provider de persistencia (sqlite | postgres | ...
 
 > Goal: Integrar OpenWeave nativamente en el flujo de trabajo del desarrollador dentro de VS Code
 > y en el ciclo de asistentes de IA de código como Cline — sin salir del editor.
-> Status: M25/M26 planned
+> Incluye configuración lista-para-usar para GitHub Copilot (VS Code MCP nativo), Continue y Cline.
+> Status: M25 ✅ · M26/MCP-QC planned
 
 ---
 
-### M25 · VS Code Extension — WeaveGraph Sidebar 🔜
+### M25 · VS Code Extension — WeaveGraph Sidebar ✅
 
 Extensión oficial de OpenWeave para VS Code. Expone el grafo de conocimiento,
 las sesiones activas y los milestones directamente en el sidebar del editor.
@@ -826,18 +828,19 @@ WeaveExtensionClient  ──HTTP──►  WeaveLink (localhost:3000)
 - `vsce package` en CI (`apps/weave-vscode/.github/workflows/publish.yml`)
 
 **Tareas de implementación:**
-- [ ] Scaffold `apps/weave-vscode/` — `package.json` con `vscode` engine ≥ 1.85
-- [ ] `extension.ts` — `activate()`: registra comandos, providers, status bar
-- [ ] `WeaveExtensionClient` — wrapper `WeaveDashboardClient` con retry y SSE keepalive
-- [ ] `WeaveStatusBar` — estado de conexión + sesión activa en barra inferior
-- [ ] `SessionTreeProvider` — `TreeDataProvider<SessionItem>` con refresh on SSE event
-- [ ] `MilestoneTreeProvider` — `TreeDataProvider<MilestoneItem>` con íconos por status
-- [ ] `GraphWebviewPanel` — Webview con HTML+D3 del `GraphRenderer` de weave-dashboard
-- [ ] Comandos: `init`, `query` (QuickPick), `saveNode` (InputBox flow), `connect`
-- [ ] Configura `openweave.autoStart` para levantar `weave-link start` al abrir workspace
+- [x] Scaffold `apps/weave-vscode/` — `package.json` con `vscode` engine ≥ 1.85
+- [x] `extension.ts` — `activate()`: registra comandos, providers, status bar
+- [x] `WeaveExtensionClient` — wrapper HTTP con retry, SSE y polling fallback
+- [x] `WeaveStatusBar` — estado de conexión + nodo count en barra inferior
+- [x] `SessionTreeProvider` — `TreeDataProvider<SessionItem>` con refresh on SSE event
+- [x] `MilestoneTreeProvider` — `TreeDataProvider<MilestoneItem>` con íconos por status
+- [x] `GraphWebviewPanel` — Webview con D3 v7 force-directed graph, zoom/drag/theme
+- [x] Comandos: `init`, `query` (QuickPick), `saveNode` (InputBox flow), `connect`
+- [x] Chat Participant `@openweave` — slash commands + lenguaje natural EN/ES (Copilot Chat)
+- [x] `openweave.autoStart` + `Start/Stop WeaveLink Server` commands integrados
 - [ ] Tests con `@vscode/test-electron` — mocks de vscode API
 - [ ] CI: `vsce package` + upload `.vsix` como artifact
-- [ ] Docs: `apps/weave-vscode/README.md` — instalación, configuración, capturas de pantalla
+- [x] Docs: `apps/weave-vscode/README.md` — instalación, configuración, uso completo
 - [ ] Unit tests: ≥ 8 tests (client, tree providers, status bar, command handlers)
 
 ---
@@ -969,6 +972,489 @@ weave-link uninstall cline
 - [ ] Docs: `packages/weave-cline/README.md` — instalación en 3 pasos, ejemplo de sesión
 - [ ] Unit tests: ≥ 8 tests (manifest, executeTool mock, isAvailable, error cases)
 - [ ] Integración E2E: Cline invoca `save_node` → WeaveLink → verificar nodo en grafo
+
+---
+
+### MCP Quick-Connect · GitHub Copilot / Continue / Cline 🔜
+
+Entrega el camino más corto para que un desarrollador conecte cualquier asistente de IA
+compatible con MCP a OpenWeave en **menos de 5 minutos**: archivos de configuración
+check-in-ready en el repositorio, documentación detallada por cliente y un comando CLI
+que genera o instala la config automáticamente.
+
+Este milestone **no requiere código nuevo en el núcleo** — WeaveLink HTTP ya expone
+los endpoints necesarios (M9 ✅). Es pura plomería de configuración y documentación.
+
+#### Clientes objetivo
+
+| Cliente | Protocolo | Scope | Config file |
+|---|---|---|---|
+| **GitHub Copilot** (VS Code ≥ 1.99) | MCP nativo (stdio / HTTP-SSE) | workspace o global | `.vscode/mcp.json` |
+| **Continue** (continue.dev) | MCP nativo | workspace o global | `.continue/config.yaml` |
+| **Cline** (saoudrizwan.claude-dev) | MCP nativo | global | `cline_mcp_settings.json` |
+| **Claude Desktop** | MCP stdio | global | `claude_desktop_config.json` ✅ (M8) |
+| **Cursor** | MCP nativo | global / project | `.cursor/mcp.json` ✅ (M8) |
+
+#### `.vscode/mcp.json` — GitHub Copilot (modo recomendado)
+
+VS Code 1.99+ soporta MCP de forma nativa. El archivo `.vscode/mcp.json` activa las
+herramientas de OpenWeave directamente en GitHub Copilot Chat (`@mcp` / tool calls).
+
+```jsonc
+// .vscode/mcp.json  — check-in en el repositorio del proyecto
+{
+  "servers": {
+    "openweave": {
+      // --- Modo A: stdio (WeaveLink en proceso, zero config de red) ---
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@openweave/weave-link", "start"],
+      "env": {
+        "WEAVE_PROVIDER": "sqlite",
+        "WEAVE_SQLITE_PATH": "${workspaceFolder}/.weave/graph.db"
+      }
+    }
+  }
+}
+```
+
+```jsonc
+// .vscode/mcp.json — Modo B: HTTP (WeaveLink ya corriendo en :3000)
+{
+  "servers": {
+    "openweave": {
+      "type": "http",
+      "url": "http://localhost:3000",
+      "headers": {
+        "Authorization": "Bearer ${env:WEAVE_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+> **Nota:** VS Code resuelve `${workspaceFolder}` y `${env:VAR}` en tiempo de activación.
+> El archivo puede ser commiteado de forma segura — las credenciales van en `.env` o en
+> `settings.json` (excluido de git).
+
+#### `.continue/config.yaml` — Continue
+
+[Continue](https://continue.dev) soporta MCP desde v0.9. Se añade OpenWeave como
+proveedor de contexto y como fuente de tools en el mismo archivo:
+
+```yaml
+# .continue/config.yaml
+models:
+  - provider: anthropic          # o cualquier otro provider
+    model: claude-sonnet-4-5
+    apiKey: $ANTHROPIC_API_KEY
+
+mcpServers:
+  - name: openweave
+    # --- Modo stdio ---
+    command: npx
+    args:
+      - "@openweave/weave-link"
+      - start
+    env:
+      WEAVE_PROVIDER: sqlite
+      WEAVE_SQLITE_PATH: ".weave/graph.db"
+    # --- Modo HTTP (comentar stdio y descomentar esto) ---
+    # url: http://localhost:3000
+    # requestOptions:
+    #   headers:
+    #     Authorization: "Bearer ${WEAVE_API_KEY}"
+
+context:
+  - provider: mcp               # activa contexto automático desde OpenWeave
+    name: openweave
+```
+
+Con esta configuración, Continue inyecta automáticamente el grafo de conocimiento
+como contexto en cada prompt y expone los 7 tools de OpenWeave al modelo.
+
+#### `cline_mcp_settings.json` — Cline
+
+Cline almacena la config global en:
+- **Windows:** `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`
+- **macOS:** `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+- **Linux:** `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+
+```jsonc
+// cline_mcp_settings.json
+{
+  "mcpServers": {
+    "openweave": {
+      // --- Modo stdio (recomendado para uso local) ---
+      "command": "npx",
+      "args": ["@openweave/weave-link", "start"],
+      "env": {
+        "WEAVE_PROVIDER": "sqlite",
+        "WEAVE_SQLITE_PATH": "/absolute/path/to/project/.weave/graph.db"
+      },
+      "disabled": false,
+      "autoApprove": ["query_graph", "get_session_context", "get_next_action", "list_orphans"]
+    }
+  }
+}
+```
+
+> `autoApprove` permite a Cline invocar las tools de lectura sin confirmación manual.
+> Las de escritura (`save_node`, `suppress_error`, `update_roadmap`) quedan en modo
+> "necesita aprobación" por defecto para mayor control.
+
+#### Comando CLI de instalación automática
+
+`weave-link install` ya soporta `claude` y `cursor` (M8). Se extiende para los nuevos clientes:
+
+```bash
+# Instala la config en el cliente especificado
+weave-link install copilot      # escribe/actualiza .vscode/mcp.json en el directorio actual
+weave-link install continue     # escribe/actualiza .continue/config.yaml
+weave-link install cline        # escribe cline_mcp_settings.json en la ruta global
+weave-link install all          # instala en todos los clientes detectados
+
+# Modo HTTP en lugar de stdio
+weave-link install copilot --mode http --url http://localhost:3000
+
+# Desinstalar
+weave-link uninstall copilot
+weave-link uninstall continue
+weave-link uninstall cline
+```
+
+#### Archivo de configuración de ejemplo (en el repositorio)
+
+Además de los instaladores, se incluyen plantillas listas para copiar en `config-examples/`:
+
+```
+config-examples/
+├── vscode/
+│   ├── mcp-stdio.json          ← .vscode/mcp.json en modo stdio
+│   └── mcp-http.json           ← .vscode/mcp.json en modo HTTP
+├── continue/
+│   ├── config-stdio.yaml       ← .continue/config.yaml en modo stdio
+│   └── config-http.yaml        ← .continue/config.yaml en modo HTTP
+└── cline/
+    ├── mcp-settings-stdio.json ← cline_mcp_settings.json en modo stdio
+    └── mcp-settings-http.json  ← cline_mcp_settings.json en modo HTTP
+```
+
+#### Nuevo doc: `docs/mcp-clients.md`
+
+Guía unificada de integración con clientes MCP. Cubre:
+
+1. **Requisitos previos** — Node.js ≥ 22, VS Code ≥ 1.99 (Copilot), Continue ≥ 0.9, Cline ≥ 3.x
+2. **Inicio rápido (1 comando)** — `weave-link install all` + qué esperar al reiniciar el editor
+3. **GitHub Copilot** — paso a paso con capturas: activación, primer `@openweave save_node`
+4. **Continue** — configuración del `config.yaml`, uso del contexto MCP, atajos de teclado
+5. **Cline** — instalación global, `autoApprove`, sesión de codificación con save/query
+6. **Troubleshooting** — tabla de síntomas comunes + causa + solución
+7. **Operación en modo remoto** — apuntar a un WeaveLink productivo (M23)
+8. **Variables de entorno** — tabla completa de `WEAVE_*` con valores por defecto
+
+#### Relación con otros milestones
+
+```
+M8  ← ClaudeDesktopInstaller + CursorInstaller (ya completo ✅)
+  │
+  ├── MCP-QC (este milestone) ← CopilotInstaller + ContinueInstaller + ClineInstaller
+  │                              + config-examples/ + docs/mcp-clients.md
+  │
+  ├── M25 ← Extensión VS Code nativa (sidebar + tree providers)
+  └── M26 ← Cline plugin profundo (executeTool, ClinePlugin class)
+```
+
+#### Tareas de implementación
+
+- [ ] `CopilotInstaller` en `packages/weave-link/src/installers/copilot-installer.ts`
+  - Detecta si `.vscode/` existe en `process.cwd()` (vs global `~/.vscode/`)
+  - Modo stdio (default) y modo HTTP con `--mode http --url`
+  - Merge inteligente: no sobreescribe otras entradas en `mcp.json`
+- [ ] `ContinueInstaller` en `packages/weave-link/src/installers/continue-installer.ts`
+  - Genera o actualiza `.continue/config.yaml` (YAML con `js-yaml`, zero deps nuevas)
+  - Detecta provider de LLM existente y no lo sobreescribe
+- [ ] `ClineInstaller` en `packages/weave-link/src/installers/cline-installer.ts`
+  - Resolución cross-platform de la ruta global de Cline
+  - `autoApprove` configurable vía flag `--auto-approve read` / `--auto-approve all`
+- [ ] `weave-link install <copilot|continue|cline|all>` — nuevos subcommands CLI
+- [ ] `weave-link uninstall <copilot|continue|cline>` — limpieza de keys en config existente
+- [ ] `config-examples/` — 6 archivos de plantilla (2 por cliente)
+- [ ] `docs/mcp-clients.md` — guía completa con todas las secciones descritas arriba
+- [ ] Actualizar `docs/getting-started.md` — nueva sección "Connecting your AI assistant" con snippet de `weave-link install all`
+- [ ] Actualizar `README.md` — sección de integraciones con badges de Copilot / Continue / Cline
+- [ ] Unit tests en `packages/weave-link`:
+  - `CopilotInstaller`: ≥ 7 tests (install stdio, install http, uninstall, merge existing, Windows path, macOS path, missing dir)
+  - `ContinueInstaller`: ≥ 7 tests (install, uninstall, merge, yaml parse error recovery)
+  - `ClineInstaller`: ≥ 7 tests (install, uninstall, autoApprove modes, cross-platform paths)
+- [ ] E2E manual checklist (en README del milestone): verificar tool call real en cada cliente
+
+---
+
+## PHASE 12 — Desktop & UI Layer `v1.2.0`
+
+> Goal: Reemplazar el SPA vanilla por una UI con componentes Svelte 5 y empaquetar
+> el agente completo como una aplicación de escritorio nativa (Win / Mac / Linux)
+> usando Tauri 2 con un sidecar Node.js para WeaveLink.
+> Status: M27/M28 planned
+
+---
+
+### M27 · weave-dashboard — Migración a Svelte 5 + Vite 🔜
+
+Migrar el dashboard actual (Vite + TypeScript + D3 vanilla) a **Svelte 5 + Vite**.
+D3 sigue siendo el motor de renderizado del grafo de fuerza; Svelte reemplaza
+el código imperativo de DOM para los paneles laterales, el Kanban y el diff view.
+
+#### ¿Por qué Svelte 5?
+
+| Aspecto | Hoy (vanilla TS + D3) | Con Svelte 5 + Vite |
+|---|---|---|
+| Reactividad de paneles | DOM manual + event listeners | Runes `$state`, `$derived`, `$effect` |
+| Componentes reutilizables | Clases TS con métodos `render()` | Archivos `.svelte` auto-contenidos |
+| Bundle size | ~80 KB | ~92 KB (Svelte compila a JS puro, sin virtual DOM) |
+| SSE live-refresh | `addEventListener` manual | `$effect` reactivo al stream |
+| Test de UI | Sin framework | `@testing-library/svelte` |
+| Futuro (weave-app M28) | No reutilizable en Tauri | Webview Tauri consume el mismo bundle |
+
+#### Nueva estructura de archivos
+
+```
+apps/weave-dashboard/
+├── package.json                   ← +svelte, @sveltejs/vite-plugin-svelte, svelte-check
+├── tsconfig.json                  ← +paths para alias @components, @lib
+├── vite.config.ts                 ← plugin svelte() + proxy /api → :3000
+├── svelte.config.ts               ← { kit: false } — SPA pura, sin SvelteKit
+├── index.html
+└── src/
+    ├── main.ts                    ← monta App.svelte en #app
+    ├── App.svelte                 ← enrutador de vistas (4 tabs)
+    ├── lib/
+    │   ├── client.ts              ← WeaveDashboardClient (sin cambios)
+    │   ├── diff.ts                ← SessionDiff (sin cambios)
+    │   ├── layout.ts              ← GraphLayoutEngine (sin cambios)
+    │   ├── milestone-board.ts     ← MilestoneBoard (sin cambios)
+    │   └── error-registry.ts     ← ErrorRegistry (sin cambios)
+    ├── stores/
+    │   ├── graph.svelte.ts        ← $state: GraphSnapshot, polling vía SSE
+    │   ├── milestones.svelte.ts   ← $state: Milestone[], derived kanban columns
+    │   ├── errors.svelte.ts       ← $state: ErrorEntry[], filtros reactivos
+    │   └── session.svelte.ts     ← $state: SessionInfo activa + diff state
+    └── components/
+        ├── layout/
+        │   ├── Sidebar.svelte     ← nav tabs + estado de conexión
+        │   └── StatusBar.svelte   ← sesión activa, nodos, latencia
+        ├── graph/
+        │   ├── GraphView.svelte   ← wrapper Svelte del GraphRenderer D3
+        │   └── NodeTooltip.svelte ← tooltip flotante on hover
+        ├── milestones/
+        │   ├── KanbanBoard.svelte ← columnas: NOT_STARTED / IN_PROGRESS / DONE
+        │   ├── KanbanColumn.svelte← lista de MilestoneCard con drag indicativo
+        │   └── MilestoneCard.svelte← card con barra de progreso y subtareas
+        ├── errors/
+        │   ├── ErrorList.svelte   ← tabla filtrable de errores
+        │   └── ErrorDetail.svelte ← panel lateral con nodo CORRECTS
+        └── diff/
+            ├── DiffPicker.svelte  ← selección de dos snapshots a comparar
+            └── DiffSummary.svelte ← resumen + tabla de nodos añadidos/eliminados
+```
+
+#### Decisiones de diseño
+
+- **D3 se queda** — `GraphRenderer` se monta via `bind:this` + `$effect(() => renderer.render(snapshot))`, no se reescribe.
+- **Svelte stores como runes** — `*.svelte.ts` usa la nueva API de runes de Svelte 5 (`$state`) para que el estado sea consumible tanto desde componentes `.svelte` como desde archivos `.ts`.
+- **Sin SvelteKit** — la app sigue siendo un SPA estático servido por Vite. SvelteKit añade complejidad de SSR innecesaria para este caso.
+- **Sin CSS framework** — se conservan los tokens CSS del tema dark actual (`--color-*`, GitHub-style). Se estructura en `/src/styles/tokens.css`.
+- **Tests de componentes** — `@testing-library/svelte` + `vitest` (ya en el workspace). Mocks del cliente HTTP en `src/lib/__mocks__/client.ts`.
+
+#### Compatibilidad con M28 (Tauri)
+
+`vite build` produce los mismos assets estáticos (`dist/`) que Tauri empaqueta
+dentro del webview. No se requiere ninguna adaptación adicional.
+
+#### Tareas de implementación
+
+- [ ] `pnpm add svelte @sveltejs/vite-plugin-svelte` — añadir al devDependencies
+- [ ] `svelte.config.ts` + `vite.config.ts` — registrar plugin Svelte, conservar proxy `/api`
+- [ ] `tsconfig.json` — `compilerOptions.paths`: `@components/*`, `@lib/*`, `@stores/*`
+- [ ] `App.svelte` — shell con 4 tabs (Graph / Milestones / Errors / Session Diff), navegación por hash
+- [ ] Stores Svelte 5: `graph.svelte.ts`, `milestones.svelte.ts`, `errors.svelte.ts`, `session.svelte.ts`
+  - SSE listener en `graph.svelte.ts` → actualiza `$state` en tiempo real
+- [ ] `GraphView.svelte` — wrapper de `GraphRenderer` D3 con `$effect` reactivo al snapshot
+- [ ] `KanbanBoard.svelte` + `KanbanColumn.svelte` + `MilestoneCard.svelte`
+- [ ] `ErrorList.svelte` + `ErrorDetail.svelte` con filtros reactivos via `$derived`
+- [ ] `DiffPicker.svelte` + `DiffSummary.svelte`
+- [ ] `Sidebar.svelte` + `StatusBar.svelte`
+- [ ] `NodeTooltip.svelte` — portal flotante, posicionado con `getBoundingClientRect`
+- [ ] Tests de componentes con `@testing-library/svelte` — ≥ 10 tests nuevos
+- [ ] `svelte-check` en CI — cero errores de tipo en templates `.svelte`
+- [ ] Docs: actualizar `README.md` del paquete con screenshots del nuevo UI
+- [ ] Mantener los 60 tests actuales de `lib/` — cero regresiones
+
+---
+
+### M28 · weave-app — Desktop App Tauri 2 🔜
+
+Empaquetar el agente OpenWeave completo como una aplicación de escritorio
+nativa multiplataforma. El **shell Tauri 2** (Rust) gestiona el ciclo de vida
+de la app, lanza `weave-link` como **sidecar Node.js**, y sirve el
+**dashboard Svelte** (M27) en el webview integrado.
+No se requiere tener Node.js instalado en producción — el binario Node se
+empaqueta junto a la app.
+
+#### Arquitectura de procesos
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        weave-app                            │
+│                                                             │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │                 Tauri 2 Shell (Rust)                 │   │
+│  │                                                      │   │
+│  │   System Tray ──► Commands ──► Sidecar Manager       │   │
+│  │                                      │               │   │
+│  │                          spawn/kill  │               │   │
+│  │                                      ▼               │   │
+│  │   ┌─────────────────────────────────────────────┐   │   │
+│  │   │         Node.js Sidecar (weave-link)        │   │   │
+│  │   │                                             │   │   │
+│  │   │   WeaveLink HTTP :3001 ◄──── Tauri IPC      │   │   │
+│  │   │         │                                   │   │   │
+│  │   │   WeaveGraph / WeavePath / WeaveTools        │   │   │
+│  │   └─────────────────────────────────────────────┘   │   │
+│  │                                                      │   │
+│  │   ┌─────────────────────────────────────────────┐   │   │
+│  │   │            Webview (Tauri built-in)         │   │   │
+│  │   │                                             │   │   │
+│  │   │     Dashboard Svelte (assets de M27)        │   │   │
+│  │   │     fetch → localhost:3001/api              │   │   │
+│  │   └─────────────────────────────────────────────┘   │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Nueva estructura de archivos
+
+```
+apps/weave-app/
+├── package.json                    ← scripts: tauri dev, tauri build, tauri sidecar
+├── tsconfig.json
+├── vite.config.ts                  ← idéntico al de weave-dashboard (reutiliza assets M27)
+│
+├── src/                            ← Webview: copia/import del bundle Svelte de M27
+│   └── main.ts                     ← punto de entrada del webview
+│
+└── src-tauri/                      ← Shell Rust (Tauri 2)
+    ├── Cargo.toml                  ← dependencias Rust: tauri 2, tauri-plugin-*
+    ├── tauri.conf.json             ← identificadores de app, permisos, sidecar config
+    ├── capabilities/
+    │   └── default.json            ← permisos granulares Tauri 2 (fs, shell, http)
+    ├── icons/                      ← iconos .png/.ico/.icns para Win/Mac/Linux
+    └── src/
+        ├── main.rs                 ← setup Tauri, registra commands y plugins
+        ├── sidecar.rs              ← lanza/detiene el sidecar Node; healthcheck loop
+        ├── tray.rs                 ← ícono en bandeja del sistema + menú contextual
+        ├── updater.rs              ← auto-update vía tauri-plugin-updater
+        └── commands/
+            ├── agent.rs            ← Tauri commands: start_agent, stop_agent, agent_status
+            ├── config.rs           ← Tauri commands: get_config, set_provider, set_api_key
+            └── log.rs              ← Tauri commands: get_sidecar_logs (últimas N líneas)
+```
+
+#### Tauri `tauri.conf.json` — configuración clave
+
+```jsonc
+{
+  "productName": "OpenWeave",
+  "identifier": "com.openweave.app",
+  "version": "1.2.0",
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/icon.icns", "icons/icon.ico"]
+  },
+  "app": {
+    "windows": [{ "title": "OpenWeave", "width": 1280, "height": 800, "minWidth": 900, "minHeight": 600 }],
+    "security": { "csp": "default-src 'self'; connect-src http://localhost:3001" }
+  },
+  "plugins": {
+    "shell": { "sidecar": true },
+    "updater": { "active": true, "endpoints": ["https://releases.openweave.dev/{{target}}/{{arch}}/latest.json"] },
+    "single-instance": {}
+  }
+}
+```
+
+#### Sidecar Node.js — empaquetado
+
+```bash
+# weave-link se compila a un binario autoejectable con pkg / @vercel/ncc
+# El binario se anuncia en Cargo.toml como sidecar externo
+pnpm --filter weave-link build:binary   # genera dist/weave-link-sidecar
+```
+
+`sidecar.rs` usa `tauri::api::process::Command` para lanzar el binario,
+espera el `GET /health` con reintentos (max 10 × 500 ms) y expone
+`start_agent` / `stop_agent` / `agent_status` como Tauri commands al webview.
+
+#### Sistema de bandeja (tray)
+
+```
+[ícono OpenWeave]
+├── OpenWeave v1.2.0
+├── ─────────────────
+├── ● Agente: Activo   (o ○ Detenido)
+├── Sesión: my-project
+├── ─────────────────
+├── Abrir Dashboard
+├── Iniciar / Detener Agente
+├── Configuración…
+└── Salir
+```
+
+#### CI/CD — matriz de builds
+
+| Target | Runner | Artifact |
+|---|---|---|
+| `x86_64-apple-darwin` | `macos-latest` | `.dmg` + `.app.tar.gz` |
+| `aarch64-apple-darwin` | `macos-latest` (M-series) | `.dmg` + `.app.tar.gz` |
+| `x86_64-pc-windows-msvc` | `windows-latest` | `.msi` + `.exe` (NSIS) |
+| `x86_64-unknown-linux-gnu` | `ubuntu-22.04` | `.deb` + `.AppImage` |
+| `aarch64-unknown-linux-gnu` | `ubuntu-22.04` (cross) | `.deb` |
+
+Todos los artefactos se suben a la GitHub Release del tag semver correspondiente.
+El `tauri-plugin-updater` verifica `releases.openweave.dev` al arrancar la app.
+
+#### Comparativa de runtimes evaluados
+
+| Criterio | Electron | Tauri 2 | Webview standalone |
+|---|---|---|---|
+| Tamaño instalador | ~200 MB | ~8–15 MB | ~5 MB |
+| RAM en reposo | ~150 MB | ~30 MB | ~20 MB |
+| Node.js bundleado | ✅ integrado | ✅ sidecar | ✅ sidecar |
+| Update nativo | ✅ electron-updater | ✅ tauri-plugin-updater | ❌ manual |
+| System tray nativo | ✅ | ✅ | ❌ |
+| iOS / Android (futuro) | ❌ | ✅ Tauri Mobile 2 | ❌ |
+| Licencia | MIT | MIT + Apache 2 | — |
+
+#### Tareas de implementación
+
+- [ ] Scaffold `apps/weave-app/` — `package.json` con scripts `tauri dev` + `tauri build`
+- [ ] `vite.config.ts` — importa assets del build de M27 (`@openweave/weave-dashboard`)
+- [ ] `src-tauri/Cargo.toml` — dependencias: `tauri 2`, `tauri-plugin-shell`, `tauri-plugin-updater`, `tauri-plugin-single-instance`, `tauri-plugin-notification`
+- [ ] `tauri.conf.json` + `capabilities/default.json` — permisos mínimos (shell sidecar, http localhost)
+- [ ] `sidecar.rs` — `spawn()` del binario `weave-link`, healthcheck loop, `kill()` en `on_exit`
+- [ ] `tray.rs` — `SystemTray` con menú y actualización dinámica del estado del agente
+- [ ] `commands/agent.rs` — `start_agent`, `stop_agent`, `agent_status` (retornan al webview via `invoke()`)
+- [ ] `commands/config.rs` — `get_config`, `set_provider`, `set_api_key` (lee/escribe `.weave.config.json`)
+- [ ] `commands/log.rs` — `get_sidecar_logs(lines: usize)` para panel de diagnóstico en UI
+- [ ] `updater.rs` — endpoint `releases.openweave.dev`, ventana de confirmación antes de instalar
+- [ ] Script `pnpm --filter weave-link build:binary` — empaqueta weave-link con `@vercel/ncc` + `pkg`
+- [ ] CI: `.github/workflows/tauri-release.yml` — matriz 5 targets, firma con secrets del Marketplace
+- [ ] `apps/weave-app/icons/` — generar iconos desde SVG base con `tauri-cli icon`
+- [ ] Docs: `apps/weave-app/README.md` — descarga, instalación, variables de entorno soportadas
+- [ ] Unit/integration tests: `cargo test` para commands Rust + mocks del sidecar
+- [ ] E2E: `@tauri-apps/api/mocks` en Vitest — simula `invoke()` sin proceso Rust real
 
 ---
 

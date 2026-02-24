@@ -1,0 +1,42 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compile weave-vscode",
+      "type": "shell",
+      "command": "pnpm --filter @openweave/weave-vscode run compile",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "watch weave-vscode",
+      "type": "shell",
+      "command": "pnpm --filter @openweave/weave-vscode run watch",
+      "isBackground": true,
+      "group": "build",
+      "problemMatcher": "$tsc-watch",
+      "presentation": {
+        "reveal": "never",
+        "panel": "shared"
+      }
+    },
+    {
+      "label": "compile tests weave-vscode",
+      "type": "shell",
+      "command": "pnpm --filter @openweave/weave-vscode run compile-tests",
+      "group": "build",
+      "problemMatcher": "$tsc",
+      "presentation": {
+        "reveal": "silent",
+        "panel": "shared"
+      }
+    }
+  ]
+}

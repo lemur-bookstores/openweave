@@ -98,6 +98,37 @@
         }
       ]
     },
+    "chatParticipants": [
+      {
+        "id": "openweave",
+        "fullName": "OpenWeave",
+        "name": "openweave",
+        "description": "Query and manage your WeaveGraph knowledge base via Copilot Chat",
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "query",
+            "description": "Search the knowledge graph — @openweave /query auth flow"
+          },
+          {
+            "name": "save",
+            "description": "Save a new node using natural language — @openweave /save the login bug causes a 401"
+          },
+          {
+            "name": "milestones",
+            "description": "Show milestone and roadmap status"
+          },
+          {
+            "name": "sessions",
+            "description": "List active WeaveLink sessions"
+          },
+          {
+            "name": "status",
+            "description": "Show WeaveLink server connection status"
+          }
+        ]
+      }
+    ],
     "configuration": {
       "title": "OpenWeave",
       "properties": {

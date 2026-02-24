@@ -9,6 +9,7 @@ import { initCommand }             from './commands/init';
 import { queryCommand }            from './commands/query';
 import { saveNodeCommand }         from './commands/saveNode';
 import { connectCommand }          from './commands/connect';
+import { registerChatParticipant } from './chat/WeaveChatParticipant';
 
 // ---------------------------------------------------------------------------
 // activate — called when a workspace with .weave/ is opened (see package.json)
@@ -46,6 +47,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     vscode.commands.registerCommand('openweave.startServer', ()      => startServer(context, client)),
     vscode.commands.registerCommand('openweave.stopServer',  ()      => stopServer()),
   );
+
+  // ---- Chat Participant (@openweave in Copilot Chat) -----------------------
+  // Gracefully no-ops when GitHub Copilot Chat extension is not installed.
+  context.subscriptions.push(registerChatParticipant(context, client));
 
   // ---- Disposables ---------------------------------------------------------
   context.subscriptions.push(statusBar, client, sessionProvider, milestoneProvider);

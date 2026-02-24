@@ -1,3 +1,4 @@
+import * as path from 'node:path';
 import {
   SaveNodeArgs,
   QueryGraphArgs,
@@ -11,6 +12,13 @@ import {
   QueryResult,
 } from "./types";
 import { ALL_TOOLS, getTool } from "./tools";
+import {
+  PersistenceManager,
+  NodeType,
+  EdgeType,
+  NodeBuilder,
+  EdgeBuilder,
+} from "@openweave/weave-graph";
 
 /**
  * WeaveLink MCP Server
@@ -74,7 +82,7 @@ function validateSaveNodeArgs(args: Record<string, unknown>): string | null {
 
 export class WeaveLinkServer {
   private config: MCPServerConfig;
-  private sessions: Map<string, unknown> = new Map();
+  private persistence: PersistenceManager;
 
   constructor(config: MCPServerConfig = {}) {
     this.config = {
@@ -86,15 +94,17 @@ export class WeaveLinkServer {
           listChanged: true,
         },
       },
+      dataDir: config.dataDir || path.join(process.cwd(), '.weave'),
     };
+    this.persistence = new PersistenceManager(this.config.dataDir!);
   }
 
   /**
    * Initialize server (setup, load state, etc.)
    */
   async initialize(): Promise<void> {
-    // Server initialization logic
-    console.log(`[${this.config.name}] Initializing MCP server v${this.config.version}`);
+    await this.persistence.ensureDataDir();
+    console.log(`[${this.config.name}] Initializing MCP server v${this.config.version} — dataDir: ${this.config.dataDir}`);
   }
 
   /**
@@ -155,16 +165,30 @@ export class WeaveLinkServer {
 
       const { chat_id, node_id, node_label, node_type, metadata, frequency } = args;
 
-      // In a real implementation, this would save to the graph
-      // For now, store in session cache
-      const session = this.getOrCreateSession(chat_id);
-      (session as Record<string, unknown>).lastNode = {
-        id: node_id,
-        label: node_label,
-        type: node_type,
-        metadata,
-        frequency: frequency || 1,
-      };
+      const graph = await this.persistence.loadOrCreateGraph(chat_id);
+
+      // Upsert: update if node_id already exists, otherwise create
+      const existing = graph.getNode(node_id);
+      if (existing) {
+        graph.updateNode(node_id, {
+          label: node_label,
+          type: node_type as NodeType,
+          metadata: metadata ?? existing.metadata,
+          frequency: frequency ?? existing.frequency,
+          updatedAt: new Date(),
+        });
+      } else {
+        const node = NodeBuilder.create(
+          node_type as NodeType,
+          node_label,
+          undefined,
+          metadata,
+        );
+        // Override the auto-generated id with the caller-provided one
+        graph.addNode({ ...node, id: node_id, frequency: frequency ?? 1 });
+      }
+
+      await this.persistence.saveGraph(graph.snapshot());
 
       return this.success({
         message: "Node saved successfully",
@@ -187,23 +211,16 @@ export class WeaveLinkServer {
         return this.error("Missing required fields: chat_id, query");
       }
 
-      // Mock results for demonstration
-      const results: QueryResult[] = [
-        {
-          node_id: "concept-1",
-          label: query,
-          type: "CONCEPT",
-          frequency: 10,
-          score: 0.95,
-        },
-        {
-          node_id: "decision-1",
-          label: `Decide on ${query}`,
-          type: "DECISION",
-          frequency: 5,
-          score: 0.78,
-        },
-      ].slice(0, limit);
+      const graph = await this.persistence.loadOrCreateGraph(chat_id);
+      const nodes = graph.queryNodesByLabel(query).slice(0, limit);
+
+      const results: QueryResult[] = nodes.map((n) => ({
+        node_id: n.id,
+        label: n.label,
+        type: n.type,
+        frequency: n.frequency ?? 1,
+        score: 1.0, // weave-graph doesn't expose scores yet; use 1.0 as placeholder
+      }));
 
       return this.success({
         query,
@@ -228,10 +245,30 @@ export class WeaveLinkServer {
         );
       }
 
+      const graph = await this.persistence.loadOrCreateGraph(chat_id);
+
+      // Ensure the ERROR node exists
+      if (!graph.getNode(node_id)) {
+        graph.addNode({ ...NodeBuilder.error(error_label, description), id: node_id });
+      }
+
+      // Create a CORRECTION node linked to the error
+      const correctionId = `correction-${Date.now()}`;
+      const correctionNode = NodeBuilder.correction(
+        `Correction: ${error_label}`,
+        description,
+      );
+      graph.addNode({ ...correctionNode, id: correctionId });
+
+      // Edge: CORRECTION corrects ERROR
+      graph.addEdge(EdgeBuilder.create(correctionId, node_id, EdgeType.CORRECTS));
+
+      await this.persistence.saveGraph(graph.snapshot());
+
       return this.success({
         message: "Error suppressed and correction created",
         error_node_id: node_id,
-        correction_node_id: `correction-${Date.now()}`,
+        correction_node_id: correctionId,
         error_label,
       });
     } catch (error) {
@@ -249,6 +286,25 @@ export class WeaveLinkServer {
       if (!chat_id || !milestone_id || !status) {
         return this.error("Missing required fields: chat_id, milestone_id, status");
       }
+
+      const graph = await this.persistence.loadOrCreateGraph(chat_id);
+
+      const node = graph.getNode(milestone_id);
+      if (!node) {
+        return this.error(`Milestone node '${milestone_id}' not found in graph for chat '${chat_id}'`);
+      }
+
+      graph.updateNode(milestone_id, {
+        metadata: {
+          ...node.metadata,
+          status,
+          actual_hours: actual_hours ?? 0,
+          updatedAt: new Date().toISOString(),
+        },
+        updatedAt: new Date(),
+      });
+
+      await this.persistence.saveGraph(graph.snapshot());
 
       return this.success({
         message: "Milestone updated",
@@ -274,21 +330,27 @@ export class WeaveLinkServer {
         return this.error("Missing required field: chat_id");
       }
 
-      // Mock context for demonstration
+      const graph = await this.persistence.loadOrCreateGraph(chat_id);
+      const stats = graph.getStats();
+      const snapshot = graph.snapshot();
+
+      const nodes: QueryResult[] = Object.values(snapshot.nodes)
+        .sort((a, b) => (b.frequency ?? 1) - (a.frequency ?? 1))
+        .slice(0, 20)
+        .map((n) => ({
+          node_id: n.id,
+          label: n.label,
+          type: n.type,
+          frequency: n.frequency ?? 1,
+          score: 1.0,
+        }));
+
       const context: ContextWindow = {
-        total_nodes: 5,
-        total_edges: 8,
-        context_size_bytes: 2048,
-        context_usage_percent: 42,
-        nodes: [
-          {
-            node_id: "concept-1",
-            label: "Project Goal",
-            type: "CONCEPT",
-            frequency: 15,
-            score: 1.0,
-          },
-        ],
+        total_nodes: stats.totalNodes,
+        total_edges: stats.totalEdges,
+        context_size_bytes: JSON.stringify(snapshot).length,
+        context_usage_percent: Math.min(100, Math.round((stats.totalNodes / 500) * 100)),
+        nodes,
       };
 
       return this.success(context);
@@ -308,14 +370,29 @@ export class WeaveLinkServer {
         return this.error("Missing required field: chat_id");
       }
 
+      const graph = await this.persistence.loadOrCreateGraph(chat_id);
+      const milestones = graph.queryNodesByType(NodeType.MILESTONE);
+
+      // Return the first MILESTONE whose metadata.status is not 'DONE'
+      const next = milestones.find(
+        (n) => !n.metadata || n.metadata['status'] !== 'DONE',
+      );
+
+      if (!next) {
+        return this.success({
+          message: 'No pending milestones found',
+          milestones: milestones.map((m) => ({ node_id: m.id, label: m.label, status: m.metadata?.['status'] ?? 'PENDING' })),
+        });
+      }
+
       return this.success({
-        sub_task_id: "M1-1",
-        milestone_id: "M1",
-        title: "Implement core data model",
-        description: "Design and implement basic node/edge structures",
-        estimated_hours: 5,
-        priority: "CRITICAL",
-        reason: "First task in the sequence",
+        sub_task_id: next.id,
+        milestone_id: next.id,
+        title: next.label,
+        description: next.description ?? '',
+        estimated_hours: Number(next.metadata?.['estimated_hours'] ?? 0),
+        priority: String(next.metadata?.['priority'] ?? 'NORMAL'),
+        reason: 'Next unresolved milestone in graph',
       });
     } catch (error) {
       return this.error(`Failed to get next action: ${(error as Error).message}`);
@@ -352,20 +429,6 @@ export class WeaveLinkServer {
     } catch (error) {
       return this.error(`Orphan detection failed: ${(error as Error).message}`);
     }
-  }
-
-  /**
-   * Helper: get or create session
-   */
-  private getOrCreateSession(chatId: string): unknown {
-    if (!this.sessions.has(chatId)) {
-      this.sessions.set(chatId, {
-        created_at: new Date(),
-        nodes: [],
-        edges: [],
-      });
-    }
-    return this.sessions.get(chatId);
   }
 
   /**

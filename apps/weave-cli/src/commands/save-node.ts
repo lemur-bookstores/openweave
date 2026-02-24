@@ -77,7 +77,7 @@ export class SaveNodeCommand implements CliCommand {
         };
       }
 
-      const projectRoot = resolveProjectRoot();
+      const projectRoot = resolveProjectRoot(args.flags.root as string | undefined);
       const weaveDir = join(projectRoot, '.weave');
       const graphPath = join(weaveDir, 'graph.json');
 

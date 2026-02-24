@@ -83,7 +83,12 @@ export class WeaveExtensionClient implements vscode.Disposable {
       }
       const json = await res.json() as { content?: Array<{ text?: string }> };
       const text = json.content?.[0]?.text ?? '{}';
-      const data = JSON.parse(text) as T;
+      let data: T;
+      try {
+        data = JSON.parse(text) as T;
+      } catch {
+        return { success: false, error: text };
+      }
       return { success: true, data };
     } catch (err) {
       return { success: false, error: String(err) };
@@ -114,7 +119,15 @@ export class WeaveExtensionClient implements vscode.Disposable {
   }
 
   async saveNode(node: Omit<WeaveNode, 'id' | 'createdAt' | 'updatedAt'>): Promise<ToolCallResult<WeaveNode>> {
-    return this.callTool<WeaveNode>('save_node', node);
+    const chatId = vscode.workspace.workspaceFolders?.[0]?.name ?? 'default';
+    const nodeId = `${chatId}-${Date.now()}`;
+    return this.callTool<WeaveNode>('save_node', {
+      chat_id: chatId,
+      node_id: nodeId,
+      node_label: node.label,
+      node_type: node.type,
+      metadata: node.metadata ?? {},
+    });
   }
 
   async queryGraph(query: string): Promise<WeaveNode[]> {

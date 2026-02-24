@@ -81,6 +81,8 @@ export interface MCPServerConfig {
       listChanged?: boolean;
     };
   };
+  /** Directory where graph data is persisted. Defaults to <cwd>/.weave */
+  dataDir?: string;
 }
 
 /**

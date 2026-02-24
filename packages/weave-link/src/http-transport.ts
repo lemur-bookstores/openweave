@@ -153,8 +153,19 @@ export class HttpTransport {
     const path = url.pathname;
 
     // Public endpoints (no auth)
-    if (path === '/' && req.method === 'GET') return this.handleInfo(req, res);
+    if (path === '/' && req.method === 'GET') {
+      // MCP Streamable HTTP: if client wants SSE, serve events stream
+      if (req.headers['accept']?.includes('text/event-stream')) {
+        return this.auth.middleware(req, res, () => this.handleSSE(req, res));
+      }
+      return this.handleInfo(req, res);
+    }
     if (path === '/health' && req.method === 'GET') return this.handleHealth(req, res);
+
+    // MCP Streamable HTTP — JSON-RPC 2.0 on POST /
+    if (path === '/' && req.method === 'POST') {
+      return this.auth.middleware(req, res, () => this.handleMCPRPC(req, res));
+    }
 
     // Protected endpoints
     if (path === '/tools' && req.method === 'GET') {
@@ -196,6 +207,92 @@ export class HttpTransport {
   private handleListTools(_req: IncomingMessage, res: ServerResponse): void {
     const tools = this.weaveLinkServer.listTools();
     this.json(res, 200, { tools, count: tools.length });
+  }
+
+  // ── MCP Streamable HTTP (JSON-RPC 2.0) ───────────────────
+  // Handles the protocol used by VS Code Copilot and other MCP clients
+  // that POST JSON-RPC messages to the server root endpoint.
+
+  private handleMCPRPC(req: IncomingMessage, res: ServerResponse): void {
+    res.setHeader('Access-Control-Expose-Headers', 'mcp-session-id');
+
+    this.readBody(req)
+      .then(async (body) => {
+        let rpc: { jsonrpc: string; method: string; params?: Record<string, unknown>; id?: unknown };
+        try {
+          rpc = JSON.parse(body);
+        } catch {
+          this.jsonRPC(res, null, null, { code: -32700, message: 'Parse error' });
+          return;
+        }
+
+        const { method, params = {}, id = null } = rpc;
+
+        // ── initialize ─────────────────────────────────────
+        if (method === 'initialize') {
+          const info = this.weaveLinkServer.getServerInfo();
+          this.jsonRPC(res, id, {
+            protocolVersion: '2024-11-05',
+            capabilities: { tools: {} },
+            serverInfo: { name: info.name, version: info.version },
+          });
+          return;
+        }
+
+        // ── notifications/initialized (no response needed) ──
+        if (method === 'notifications/initialized') {
+          res.writeHead(202);
+          res.end();
+          return;
+        }
+
+        // ── ping ────────────────────────────────────────────
+        if (method === 'ping') {
+          this.jsonRPC(res, id, {});
+          return;
+        }
+
+        // ── tools/list ──────────────────────────────────────
+        if (method === 'tools/list') {
+          const tools = this.weaveLinkServer.listTools().map((t) => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+          }));
+          this.jsonRPC(res, id, { tools });
+          return;
+        }
+
+        // ── tools/call ──────────────────────────────────────
+        if (method === 'tools/call') {
+          const toolName = params['name'] as string;
+          const toolArgs = (params['arguments'] ?? {}) as Record<string, unknown>;
+
+          if (!toolName) {
+            this.jsonRPC(res, id, null, { code: -32602, message: 'Missing params.name' });
+            return;
+          }
+
+          const result = await this.weaveLinkServer.callTool(toolName, toolArgs);
+
+          // Notify SSE clients
+          this.broadcast({ event: 'tool_called', data: { tool: toolName, timestamp: new Date().toISOString() } });
+
+          this.jsonRPC(res, id, result);
+          return;
+        }
+
+        // Unknown method
+        this.jsonRPC(res, id, null, { code: -32601, message: `Method not found: ${method}` });
+      })
+      .catch((err) => {
+        const e = err as Error & { statusCode?: number };
+        if (e.statusCode === 413) {
+          this.jsonRPC(res, null, null, { code: -32600, message: 'Payload too large' });
+        } else {
+          this.jsonRPC(res, null, null, { code: -32603, message: `Internal error: ${e.message}` });
+        }
+      });
   }
 
   private handleCallTool(req: IncomingMessage, res: ServerResponse): void {
@@ -319,6 +416,23 @@ export class HttpTransport {
   private json(res: ServerResponse, status: number, data: unknown): void {
     const body = JSON.stringify(data);
     res.writeHead(status, {
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body),
+    });
+    res.end(body);
+  }
+
+  private jsonRPC(
+    res: ServerResponse,
+    id: unknown,
+    result: unknown,
+    error?: { code: number; message: string }
+  ): void {
+    const payload = error
+      ? { jsonrpc: '2.0', error, id }
+      : { jsonrpc: '2.0', result, id };
+    const body = JSON.stringify(payload);
+    res.writeHead(200, {
       'Content-Type': 'application/json',
       'Content-Length': Buffer.byteLength(body),
     });

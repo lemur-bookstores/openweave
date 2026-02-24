@@ -81,13 +81,21 @@ export class WeaveExtensionClient implements vscode.Disposable {
         const text = await res.text();
         return { success: false, error: text };
       }
-      const json = await res.json() as { content?: Array<{ text?: string }> };
-      const text = json.content?.[0]?.text ?? '{}';
+      // Server returns: { content: [{ type: 'text', data: {...} }] }
+      const json = await res.json() as { content?: Array<{ data?: unknown; text?: string }> };
+      const item = json.content?.[0];
       let data: T;
-      try {
-        data = JSON.parse(text) as T;
-      } catch {
-        return { success: false, error: text };
+      if (item?.data !== undefined) {
+        // Preferred: structured .data field
+        data = item.data as T;
+      } else {
+        // Fallback: JSON-encoded .text field
+        const text = (item as { text?: string } | undefined)?.text ?? '{}';
+        try {
+          data = JSON.parse(text) as T;
+        } catch {
+          return { success: false, error: text };
+        }
       }
       return { success: true, data };
     } catch (err) {
@@ -96,26 +104,59 @@ export class WeaveExtensionClient implements vscode.Disposable {
   }
 
   async getSnapshot(): Promise<GraphSnapshot | null> {
-    const result = await this.callTool<GraphSnapshot>('query_graph', { query: '*', limit: 200 });
+    const chatId = this._chatId();
+    type ContextResult = {
+      total_nodes: number;
+      total_edges: number;
+      nodes: Array<{ node_id: string; label: string; type: string; frequency: number }>;
+    };
+    const result = await this.callTool<ContextResult>('get_session_context', { chat_id: chatId });
     if (!result.success || !result.data) { return null; }
-    return result.data;
+    const { total_nodes, total_edges, nodes } = result.data;
+    return {
+      nodes: (nodes ?? []).map(n => ({
+        id: n.node_id,
+        label: n.label,
+        type: n.type as import('../types').NodeType,
+        metadata: {},
+      })),
+      edges: [],
+      nodeCount: total_nodes,
+      edgeCount: total_edges,
+      timestamp: new Date().toISOString(),
+    };
   }
 
   async listSessions(): Promise<SessionInfo[]> {
-    try {
-      const res = await this._fetch('GET', '/sessions');
-      if (!res.ok) { return []; }
-      const json = await res.json() as { sessions?: SessionInfo[] };
-      return json.sessions ?? [];
-    } catch {
-      return [];
-    }
+    const chatId = this._chatId();
+    type ContextResult = { total_nodes: number; total_edges: number };
+    const result = await this.callTool<ContextResult>('get_session_context', { chat_id: chatId });
+    if (!result.success || !result.data) { return []; }
+    return [{
+      id: chatId,
+      name: chatId,
+      provider: 'json',
+      nodeCount: result.data.total_nodes,
+      startedAt: new Date().toISOString(),
+    }];
   }
 
   async listMilestones(): Promise<MilestoneItem[]> {
-    const result = await this.callTool<{ milestones?: MilestoneItem[] }>('get_next_action', {});
-    if (!result.success || !result.data) { return []; }
-    return result.data.milestones ?? [];
+    const chatId = this._chatId();
+    type NextAction = {
+      milestone_id?: string;
+      title?: string;
+      description?: string;
+      priority?: string;
+    };
+    const result = await this.callTool<NextAction>('get_next_action', { chat_id: chatId });
+    if (!result.success || !result.data || !result.data.milestone_id) { return []; }
+    const d = result.data;
+    return [{
+      id: d.milestone_id!,
+      title: d.title ?? d.milestone_id!,
+      status: 'not-started',
+    }];
   }
 
   async saveNode(node: Omit<WeaveNode, 'id' | 'createdAt' | 'updatedAt'>): Promise<ToolCallResult<WeaveNode>> {
@@ -131,12 +172,25 @@ export class WeaveExtensionClient implements vscode.Disposable {
   }
 
   async queryGraph(query: string): Promise<WeaveNode[]> {
-    const result = await this.callTool<{ nodes?: WeaveNode[] }>('query_graph', { query });
+    const chatId = this._chatId();
+    type QueryResult = {
+      results?: Array<{ node_id: string; label: string; type: string; frequency: number; score: number }>;
+    };
+    const result = await this.callTool<QueryResult>('query_graph', { chat_id: chatId, query, limit: 50 });
     if (!result.success || !result.data) { return []; }
-    return result.data.nodes ?? [];
+    return (result.data.results ?? []).map(r => ({
+      id: r.node_id,
+      label: r.label,
+      type: r.type as import('../types').NodeType,
+      metadata: {},
+    }));
   }
 
   // ---- private helpers -----------------------------------------------------
+
+  private _chatId(): string {
+    return vscode.workspace.workspaceFolders?.[0]?.name ?? 'default';
+  }
 
   private _url(): string {
     return vscode.workspace.getConfiguration('openweave').get<string>('serverUrl', 'http://localhost:3000');

@@ -152,21 +152,26 @@ function cmdStatus(): void {
 // Entry point
 // ──────────────────────────────────────────────────────────
 
-const argv = process.argv.slice(2);
-const args = parseArgs(argv);
-const command = (args['command'] as string) ?? 'start';
+(async () => {
+  const argv = process.argv.slice(2);
+  const args = parseArgs(argv);
+  const command = (args['command'] as string) ?? 'start';
 
-switch (command) {
-  case 'start':
-    await cmdStart(args);
-    break;
-  case 'sessions':
-    cmdSessions(args);
-    break;
-  case 'status':
-    cmdStatus();
-    break;
-  default:
-    console.error(`Unknown command: ${command}`);
-    process.exit(1);
-}
+  switch (command) {
+    case 'start':
+      await cmdStart(args);
+      break;
+    case 'sessions':
+      cmdSessions(args);
+      break;
+    case 'status':
+      cmdStatus();
+      break;
+    default:
+      console.error(`Unknown command: ${command}`);
+      process.exit(1);
+  }
+})().catch((err) => {
+  console.error('[agent-core] Fatal:', err);
+  process.exit(1);
+});

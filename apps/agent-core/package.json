@@ -4,7 +4,6 @@
   "description": "OpenWeave Agent Core — ReAct orchestrator with tool registry, context management and session lifecycle",
   "private": false,
   "license": "MIT",
-  "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
@@ -16,7 +15,7 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/index.js",
+      "require": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
   },

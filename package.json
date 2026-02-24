@@ -1,6 +1,6 @@
 {
   "name": "openweave",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "Weaving context into intelligence — an open-source AI agent that thinks like a senior developer",
   "private": true,
   "license": "MIT",

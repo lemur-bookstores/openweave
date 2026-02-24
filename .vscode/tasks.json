@@ -9,7 +9,7 @@
         "kind": "build",
         "isDefault": true
       },
-      "problemMatcher": "$ts-webpack",
+      "problemMatcher": "$tsc",
       "presentation": {
         "reveal": "silent",
         "panel": "shared"
@@ -21,7 +21,7 @@
       "command": "pnpm --filter @openweave/weave-vscode run watch",
       "isBackground": true,
       "group": "build",
-      "problemMatcher": "$ts-webpack-watch",
+      "problemMatcher": "$tsc-watch",
       "presentation": {
         "reveal": "never",
         "panel": "shared"

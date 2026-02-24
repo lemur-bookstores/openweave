@@ -26,7 +26,7 @@
   ],
   "author": "OpenWeave Team",
   "license": "MIT",
-  "private": true,
+  "private": false,
   "dependencies": {
     "@openweave/weave-graph": "workspace:*",
     "@openweave/weave-path": "workspace:*",

@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Extension (weave-vscode)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/weave-vscode"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/apps/weave-vscode/dist/**/*.js"
+      ],
+      "preLaunchTask": "compile weave-vscode"
+    },
+    {
+      "name": "Extension Tests (weave-vscode)",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/apps/weave-vscode",
+        "--extensionTestsPath=${workspaceFolder}/apps/weave-vscode/out/test/extension.test"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/apps/weave-vscode/out/**/*.js"
+      ],
+      "preLaunchTask": "compile tests weave-vscode"
+    }
+  ]
+}

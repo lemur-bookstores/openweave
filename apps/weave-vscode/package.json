@@ -20,6 +20,7 @@
   "keywords": ["openweave", "knowledge-graph", "mcp", "ai", "agent"],
   "icon": "media/icon.png",
   "activationEvents": [
+    "onStartupFinished",
     "workspaceContains:.weave"
   ],
   "main": "./dist/extension.js",

@@ -736,7 +736,8 @@ WEAVE_PROVIDER=sqlite        # provider de persistencia (sqlite | postgres | ...
 
 > Goal: Integrar OpenWeave nativamente en el flujo de trabajo del desarrollador dentro de VS Code
 > y en el ciclo de asistentes de IA de código como Cline — sin salir del editor.
-> Status: M25/M26 planned
+> Incluye configuración lista-para-usar para GitHub Copilot (VS Code MCP nativo), Continue y Cline.
+> Status: M25/M26/MCP-QC planned
 
 ---
 
@@ -970,6 +971,222 @@ weave-link uninstall cline
 - [ ] Docs: `packages/weave-cline/README.md` — instalación en 3 pasos, ejemplo de sesión
 - [ ] Unit tests: ≥ 8 tests (manifest, executeTool mock, isAvailable, error cases)
 - [ ] Integración E2E: Cline invoca `save_node` → WeaveLink → verificar nodo en grafo
+
+---
+
+### MCP Quick-Connect · GitHub Copilot / Continue / Cline 🔜
+
+Entrega el camino más corto para que un desarrollador conecte cualquier asistente de IA
+compatible con MCP a OpenWeave en **menos de 5 minutos**: archivos de configuración
+check-in-ready en el repositorio, documentación detallada por cliente y un comando CLI
+que genera o instala la config automáticamente.
+
+Este milestone **no requiere código nuevo en el núcleo** — WeaveLink HTTP ya expone
+los endpoints necesarios (M9 ✅). Es pura plomería de configuración y documentación.
+
+#### Clientes objetivo
+
+| Cliente | Protocolo | Scope | Config file |
+|---|---|---|---|
+| **GitHub Copilot** (VS Code ≥ 1.99) | MCP nativo (stdio / HTTP-SSE) | workspace o global | `.vscode/mcp.json` |
+| **Continue** (continue.dev) | MCP nativo | workspace o global | `.continue/config.yaml` |
+| **Cline** (saoudrizwan.claude-dev) | MCP nativo | global | `cline_mcp_settings.json` |
+| **Claude Desktop** | MCP stdio | global | `claude_desktop_config.json` ✅ (M8) |
+| **Cursor** | MCP nativo | global / project | `.cursor/mcp.json` ✅ (M8) |
+
+#### `.vscode/mcp.json` — GitHub Copilot (modo recomendado)
+
+VS Code 1.99+ soporta MCP de forma nativa. El archivo `.vscode/mcp.json` activa las
+herramientas de OpenWeave directamente en GitHub Copilot Chat (`@mcp` / tool calls).
+
+```jsonc
+// .vscode/mcp.json  — check-in en el repositorio del proyecto
+{
+  "servers": {
+    "openweave": {
+      // --- Modo A: stdio (WeaveLink en proceso, zero config de red) ---
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@openweave/weave-link", "start"],
+      "env": {
+        "WEAVE_PROVIDER": "sqlite",
+        "WEAVE_SQLITE_PATH": "${workspaceFolder}/.weave/graph.db"
+      }
+    }
+  }
+}
+```
+
+```jsonc
+// .vscode/mcp.json — Modo B: HTTP (WeaveLink ya corriendo en :3000)
+{
+  "servers": {
+    "openweave": {
+      "type": "http",
+      "url": "http://localhost:3000",
+      "headers": {
+        "Authorization": "Bearer ${env:WEAVE_API_KEY}"
+      }
+    }
+  }
+}
+```
+
+> **Nota:** VS Code resuelve `${workspaceFolder}` y `${env:VAR}` en tiempo de activación.
+> El archivo puede ser commiteado de forma segura — las credenciales van en `.env` o en
+> `settings.json` (excluido de git).
+
+#### `.continue/config.yaml` — Continue
+
+[Continue](https://continue.dev) soporta MCP desde v0.9. Se añade OpenWeave como
+proveedor de contexto y como fuente de tools en el mismo archivo:
+
+```yaml
+# .continue/config.yaml
+models:
+  - provider: anthropic          # o cualquier otro provider
+    model: claude-sonnet-4-5
+    apiKey: $ANTHROPIC_API_KEY
+
+mcpServers:
+  - name: openweave
+    # --- Modo stdio ---
+    command: npx
+    args:
+      - "@openweave/weave-link"
+      - start
+    env:
+      WEAVE_PROVIDER: sqlite
+      WEAVE_SQLITE_PATH: ".weave/graph.db"
+    # --- Modo HTTP (comentar stdio y descomentar esto) ---
+    # url: http://localhost:3000
+    # requestOptions:
+    #   headers:
+    #     Authorization: "Bearer ${WEAVE_API_KEY}"
+
+context:
+  - provider: mcp               # activa contexto automático desde OpenWeave
+    name: openweave
+```
+
+Con esta configuración, Continue inyecta automáticamente el grafo de conocimiento
+como contexto en cada prompt y expone los 7 tools de OpenWeave al modelo.
+
+#### `cline_mcp_settings.json` — Cline
+
+Cline almacena la config global en:
+- **Windows:** `%APPDATA%\Code\User\globalStorage\saoudrizwan.claude-dev\settings\cline_mcp_settings.json`
+- **macOS:** `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+- **Linux:** `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+
+```jsonc
+// cline_mcp_settings.json
+{
+  "mcpServers": {
+    "openweave": {
+      // --- Modo stdio (recomendado para uso local) ---
+      "command": "npx",
+      "args": ["@openweave/weave-link", "start"],
+      "env": {
+        "WEAVE_PROVIDER": "sqlite",
+        "WEAVE_SQLITE_PATH": "/absolute/path/to/project/.weave/graph.db"
+      },
+      "disabled": false,
+      "autoApprove": ["query_graph", "get_session_context", "get_next_action", "list_orphans"]
+    }
+  }
+}
+```
+
+> `autoApprove` permite a Cline invocar las tools de lectura sin confirmación manual.
+> Las de escritura (`save_node`, `suppress_error`, `update_roadmap`) quedan en modo
+> "necesita aprobación" por defecto para mayor control.
+
+#### Comando CLI de instalación automática
+
+`weave-link install` ya soporta `claude` y `cursor` (M8). Se extiende para los nuevos clientes:
+
+```bash
+# Instala la config en el cliente especificado
+weave-link install copilot      # escribe/actualiza .vscode/mcp.json en el directorio actual
+weave-link install continue     # escribe/actualiza .continue/config.yaml
+weave-link install cline        # escribe cline_mcp_settings.json en la ruta global
+weave-link install all          # instala en todos los clientes detectados
+
+# Modo HTTP en lugar de stdio
+weave-link install copilot --mode http --url http://localhost:3000
+
+# Desinstalar
+weave-link uninstall copilot
+weave-link uninstall continue
+weave-link uninstall cline
+```
+
+#### Archivo de configuración de ejemplo (en el repositorio)
+
+Además de los instaladores, se incluyen plantillas listas para copiar en `config-examples/`:
+
+```
+config-examples/
+├── vscode/
+│   ├── mcp-stdio.json          ← .vscode/mcp.json en modo stdio
+│   └── mcp-http.json           ← .vscode/mcp.json en modo HTTP
+├── continue/
+│   ├── config-stdio.yaml       ← .continue/config.yaml en modo stdio
+│   └── config-http.yaml        ← .continue/config.yaml en modo HTTP
+└── cline/
+    ├── mcp-settings-stdio.json ← cline_mcp_settings.json en modo stdio
+    └── mcp-settings-http.json  ← cline_mcp_settings.json en modo HTTP
+```
+
+#### Nuevo doc: `docs/mcp-clients.md`
+
+Guía unificada de integración con clientes MCP. Cubre:
+
+1. **Requisitos previos** — Node.js ≥ 22, VS Code ≥ 1.99 (Copilot), Continue ≥ 0.9, Cline ≥ 3.x
+2. **Inicio rápido (1 comando)** — `weave-link install all` + qué esperar al reiniciar el editor
+3. **GitHub Copilot** — paso a paso con capturas: activación, primer `@openweave save_node`
+4. **Continue** — configuración del `config.yaml`, uso del contexto MCP, atajos de teclado
+5. **Cline** — instalación global, `autoApprove`, sesión de codificación con save/query
+6. **Troubleshooting** — tabla de síntomas comunes + causa + solución
+7. **Operación en modo remoto** — apuntar a un WeaveLink productivo (M23)
+8. **Variables de entorno** — tabla completa de `WEAVE_*` con valores por defecto
+
+#### Relación con otros milestones
+
+```
+M8  ← ClaudeDesktopInstaller + CursorInstaller (ya completo ✅)
+  │
+  ├── MCP-QC (este milestone) ← CopilotInstaller + ContinueInstaller + ClineInstaller
+  │                              + config-examples/ + docs/mcp-clients.md
+  │
+  ├── M25 ← Extensión VS Code nativa (sidebar + tree providers)
+  └── M26 ← Cline plugin profundo (executeTool, ClinePlugin class)
+```
+
+#### Tareas de implementación
+
+- [ ] `CopilotInstaller` en `packages/weave-link/src/installers/copilot-installer.ts`
+  - Detecta si `.vscode/` existe en `process.cwd()` (vs global `~/.vscode/`)
+  - Modo stdio (default) y modo HTTP con `--mode http --url`
+  - Merge inteligente: no sobreescribe otras entradas en `mcp.json`
+- [ ] `ContinueInstaller` en `packages/weave-link/src/installers/continue-installer.ts`
+  - Genera o actualiza `.continue/config.yaml` (YAML con `js-yaml`, zero deps nuevas)
+  - Detecta provider de LLM existente y no lo sobreescribe
+- [ ] `ClineInstaller` en `packages/weave-link/src/installers/cline-installer.ts`
+  - Resolución cross-platform de la ruta global de Cline
+  - `autoApprove` configurable vía flag `--auto-approve read` / `--auto-approve all`
+- [ ] `weave-link install <copilot|continue|cline|all>` — nuevos subcommands CLI
+- [ ] `weave-link uninstall <copilot|continue|cline>` — limpieza de keys en config existente
+- [ ] `config-examples/` — 6 archivos de plantilla (2 por cliente)
+- [ ] `docs/mcp-clients.md` — guía completa con todas las secciones descritas arriba
+- [ ] Actualizar `docs/getting-started.md` — nueva sección "Connecting your AI assistant" con snippet de `weave-link install all`
+- [ ] Actualizar `README.md` — sección de integraciones con badges de Copilot / Continue / Cline
+- [ ] Unit tests en `packages/weave-link`:
+  - `CopilotInstaller`: ≥ 7 tests (install stdio, install http, uninstall, merge existing, Windows path, macOS path, missing dir)
+  - `ContinueInstaller`: ≥ 7 tests (install, uninstall, merge, yaml parse error recovery)
+  - `ClineInstaller`: ≥ 7 tests (install, uninstall, autoApprove modes, cross-platform paths)
+- [ ] E2E manual checklist (en README del milestone): verificar tool call real en cada cliente
 
 ---
 

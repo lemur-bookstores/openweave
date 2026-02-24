@@ -484,7 +484,8 @@ export class ContextGraphManager {
 }
 
 // Re-export all public APIs
-export type { Node, Edge, NodeType, EdgeType, GraphSnapshot, QueryResult } from "./types";
+export type { Node, Edge, GraphSnapshot, QueryResult } from "./types";
+export { NodeType, EdgeType } from "./types";
 export { PersistenceManager } from "./persistence";
 export { NodeBuilder } from "./node";
 export { EdgeBuilder } from "./edge";

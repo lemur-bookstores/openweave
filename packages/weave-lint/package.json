@@ -2,7 +2,7 @@
   "name": "@openweave/weave-lint",
   "version": "0.2.0",
   "description": "WeaveLint — Orphan code detector with AST analysis",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

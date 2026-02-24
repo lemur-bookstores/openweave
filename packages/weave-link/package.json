@@ -2,7 +2,7 @@
   "name": "@openweave/weave-link",
   "version": "0.2.0",
   "description": "WeaveLink — MCP Server for integrating WeaveGraph with AI clients",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

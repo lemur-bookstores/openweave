@@ -2,7 +2,7 @@
   "name": "@openweave/weave-provider-sqlite",
   "version": "0.8.0",
   "description": "SQLite provider for OpenWeave — embedded, zero-deps via Node.js built-in node:sqlite (requires Node ≥ 22.5)",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

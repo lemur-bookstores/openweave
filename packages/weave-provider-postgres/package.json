@@ -2,7 +2,7 @@
   "name": "@openweave/weave-provider-postgres",
   "version": "0.8.0",
   "description": "PostgreSQL provider for OpenWeave — remote, relational storage via pg driver",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

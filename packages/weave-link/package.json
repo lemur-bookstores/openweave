@@ -1,6 +1,6 @@
 {
   "name": "@openweave/weave-link",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "WeaveLink — MCP Server for integrating WeaveGraph with AI clients",
   "private": false,
   "license": "MIT",
@@ -21,6 +21,7 @@
     }
   },
   "scripts": {
+    "prepack": "tsc",
     "build": "tsc",
     "dev": "tsc --watch",
     "test": "vitest",

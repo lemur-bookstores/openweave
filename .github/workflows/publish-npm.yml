@@ -39,7 +39,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build all packages
-        run: pnpm -r --filter "./packages/**" --filter "@openweave/weave-cli" build
+        run: pnpm -r --filter "./packages/**" --filter "@openweave/weave-cli" --filter "@openweave/agent-core" build
 
       # For each publishable package: compare current version vs npm latest.
       # If the version is new → publish.

@@ -158,6 +158,16 @@ describe("WeaveLink MCP Server", () => {
   });
 
   describe("Tool Execution - update_roadmap", () => {
+    beforeEach(async () => {
+      // Pre-seed a MILESTONE node so update_roadmap can find it
+      await server.callTool("save_node", {
+        chat_id: "test-session",
+        node_id: "M1",
+        node_label: "Sprint 1",
+        node_type: "MILESTONE",
+      });
+    });
+
     it("should update milestone status", async () => {
       const result = await server.callTool("update_roadmap", {
         chat_id: "test-session",
@@ -211,6 +221,16 @@ describe("WeaveLink MCP Server", () => {
   });
 
   describe("Tool Execution - get_next_action", () => {
+    beforeEach(async () => {
+      // Pre-seed a MILESTONE node so get_next_action has something to return
+      await server.callTool("save_node", {
+        chat_id: "test-session",
+        node_id: "milestone-next",
+        node_label: "Next Sprint",
+        node_type: "MILESTONE",
+      });
+    });
+
     it("should return next action", async () => {
       const result = await server.callTool("get_next_action", {
         chat_id: "test-session",

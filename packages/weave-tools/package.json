@@ -2,7 +2,7 @@
   "name": "@openweave/weave-tools",
   "version": "1.0.0",
   "description": "WeaveTools — External Tool Registry & Adapters for OpenWeave agent extensibility",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

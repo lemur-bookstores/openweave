@@ -2,7 +2,7 @@
   "name": "@openweave/weave-check",
   "version": "0.2.0",
   "description": "WeaveCheck — Eval suite & QA framework for OpenWeave agents",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

@@ -2,7 +2,7 @@
   "name": "@openweave/weave-skills",
   "version": "1.0.0",
   "description": "WeaveSkills — Skill Module Registry for OpenWeave agent extensibility",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

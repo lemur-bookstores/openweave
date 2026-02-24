@@ -2,7 +2,7 @@
   "name": "@openweave/weave-provider-mysql",
   "version": "0.8.0",
   "description": "MySQL/MariaDB provider for OpenWeave — remote, relational storage via mysql2 driver",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

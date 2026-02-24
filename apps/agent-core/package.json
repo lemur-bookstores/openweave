@@ -2,7 +2,7 @@
   "name": "@openweave/agent-core",
   "version": "0.2.0",
   "description": "OpenWeave Agent Core — ReAct orchestrator with tool registry, context management and session lifecycle",
-  "private": true,
+  "private": false,
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",

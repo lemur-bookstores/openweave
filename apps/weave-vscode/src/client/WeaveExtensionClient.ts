@@ -76,7 +76,7 @@ export class WeaveExtensionClient implements vscode.Disposable {
 
   async callTool<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<ToolCallResult<T>> {
     try {
-      const res = await this._fetch('POST', '/tools/call', { name, arguments: args });
+      const res = await this._fetch('POST', '/tools/call', { tool: name, args });
       if (!res.ok) {
         const text = await res.text();
         return { success: false, error: text };

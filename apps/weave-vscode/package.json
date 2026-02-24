@@ -1,0 +1,159 @@
+{
+  "name": "@openweave/weave-vscode",
+  "displayName": "OpenWeave",
+  "description": "OpenWeave VS Code Extension — WeaveGraph sidebar, milestones & MCP tools",
+  "version": "0.1.0",
+  "publisher": "openweave",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lemur-bookstores/openweave"
+  },
+  "engines": {
+    "vscode": "^1.99.0"
+  },
+  "categories": [
+    "Other",
+    "Visualization",
+    "Programming Languages"
+  ],
+  "keywords": ["openweave", "knowledge-graph", "mcp", "ai", "agent"],
+  "icon": "media/icon.png",
+  "activationEvents": [
+    "workspaceContains:.weave"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "openweave",
+          "title": "OpenWeave",
+          "icon": "media/weave.svg"
+        }
+      ]
+    },
+    "views": {
+      "openweave": [
+        {
+          "id": "openweave.graph",
+          "name": "Knowledge Graph",
+          "type": "webview"
+        },
+        {
+          "id": "openweave.milestones",
+          "name": "Milestones",
+          "type": "tree"
+        },
+        {
+          "id": "openweave.sessions",
+          "name": "Sessions",
+          "type": "tree"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "openweave.init",
+        "title": "OpenWeave: Init Project",
+        "icon": "$(add)"
+      },
+      {
+        "command": "openweave.query",
+        "title": "OpenWeave: Query Graph",
+        "icon": "$(search)"
+      },
+      {
+        "command": "openweave.saveNode",
+        "title": "OpenWeave: Save Node",
+        "icon": "$(save)"
+      },
+      {
+        "command": "openweave.connect",
+        "title": "OpenWeave: Connect Server",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "openweave.refresh",
+        "title": "OpenWeave: Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "openweave.startServer",
+        "title": "OpenWeave: Start WeaveLink Server",
+        "icon": "$(play)"
+      },
+      {
+        "command": "openweave.stopServer",
+        "title": "OpenWeave: Stop WeaveLink Server",
+        "icon": "$(debug-stop)"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "openweave.refresh",
+          "when": "view == openweave.graph || view == openweave.milestones || view == openweave.sessions",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "OpenWeave",
+      "properties": {
+        "openweave.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:3000",
+          "description": "URL of the WeaveLink HTTP server."
+        },
+        "openweave.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Bearer API key for WeaveLink authentication. Leave empty if auth is disabled.",
+          "secret": true
+        },
+        "openweave.autoStart": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically start weave-link when a workspace with .weave/ is opened."
+        },
+        "openweave.refreshIntervalMs": {
+          "type": "number",
+          "default": 5000,
+          "description": "Polling interval (ms) for graph/milestone refresh. Set to 0 to use SSE only."
+        },
+        "openweave.provider": {
+          "type": "string",
+          "default": "sqlite",
+          "enum": ["json", "sqlite", "mongodb", "postgres", "mysql"],
+          "description": "Storage provider used when autoStart launches WeaveLink."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "pnpm run compile-tests && pnpm run compile && pnpm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/vscode": "1.99.0",
+    "@types/mocha": "10.0.10",
+    "@types/node": "22.x",
+    "typescript-eslint": "8.54.0",
+    "eslint": "9.39.2",
+    "typescript": "5.9.3",
+    "ts-loader": "9.5.4",
+    "webpack": "5.104.1",
+    "webpack-cli": "6.0.1",
+    "@vscode/test-cli": "0.0.12",
+    "@vscode/test-electron": "2.5.2"
+  }
+}

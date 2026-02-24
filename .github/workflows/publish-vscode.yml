@@ -1,0 +1,93 @@
+name: Publish — VS Code Extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/weave-vscode/package.json"
+      - "apps/weave-vscode/src/**"
+      - "apps/weave-vscode/media/**"
+
+jobs:
+  publish-vsix:
+    name: Detect version bump & publish to VS Code Marketplace
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # to upload .vsix as release asset
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Read local extension version
+        id: local
+        run: |
+          VERSION=$(node -p "require('./apps/weave-vscode/package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Read published extension version
+        id: remote
+        run: |
+          # vsce show returns the latest published version; falls back to 0.0.0
+          REMOTE=$(npx @vscode/vsce show openweave.weave-vscode --json 2>/dev/null \
+            | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')).versions?.[0]?.version || '0.0.0'" \
+            || echo "0.0.0")
+          echo "version=$REMOTE" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if version unchanged
+        if: steps.local.outputs.version == steps.remote.outputs.version
+        run: |
+          echo "✓ weave-vscode@${{ steps.local.outputs.version }} already published — nothing to do."
+
+      - name: Package extension (.vsix)
+        if: steps.local.outputs.version != steps.remote.outputs.version
+        working-directory: apps/weave-vscode
+        run: |
+          pnpm run package
+          ls -lh *.vsix
+
+      - name: Publish to VS Code Marketplace
+        if: steps.local.outputs.version != steps.remote.outputs.version
+        working-directory: apps/weave-vscode
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx @vscode/vsce publish --pat "$VSCE_PAT"
+
+      - name: Publish to Open VSX Registry (ovsx)
+        if: steps.local.outputs.version != steps.remote.outputs.version
+        working-directory: apps/weave-vscode
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          # Open VSX is the open-source alternative (Gitpod, VSCodium, etc.)
+          # OVSX_PAT secret is optional — skip gracefully if not set
+          if [ -n "$OVSX_PAT" ]; then
+            npx ovsx publish --pat "$OVSX_PAT"
+          else
+            echo "⚠️  OVSX_PAT not set — skipping Open VSX publication"
+          fi
+
+      - name: Upload .vsix as GitHub Release asset
+        if: steps.local.outputs.version != steps.remote.outputs.version
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.local.outputs.version }}
+          name: "v${{ steps.local.outputs.version }}"
+          draft: false
+          prerelease: false
+          files: apps/weave-vscode/*.vsix
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

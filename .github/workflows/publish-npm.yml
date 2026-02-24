@@ -1,0 +1,92 @@
+name: Publish — npm packages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # Trigger only when a package.json version could have changed
+      - "packages/**/package.json"
+      - "apps/weave-cli/package.json"
+
+jobs:
+  detect-and-publish:
+    name: Detect version bumps & publish to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write  # for npm provenance
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # need previous commit to diff versions
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm -r --filter "./packages/**" --filter "@openweave/weave-cli" build
+
+      # For each publishable package: compare current version vs npm latest.
+      # If the version is new → publish.
+      - name: Publish changed packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          set -e
+
+          PUBLISHABLE=(
+            "packages/weave-graph"
+            "packages/weave-link"
+            "packages/weave-embed"
+            "packages/weave-lint"
+            "packages/weave-path"
+            "packages/weave-skills"
+            "packages/weave-tools"
+            "packages/weave-provider"
+            "packages/weave-provider-sqlite"
+            "packages/weave-provider-mongodb"
+            "packages/weave-provider-postgres"
+            "packages/weave-provider-mysql"
+            "apps/weave-cli"
+          )
+
+          for PKG_DIR in "${PUBLISHABLE[@]}"; do
+            PKG_JSON="$PKG_DIR/package.json"
+
+            if [ ! -f "$PKG_JSON" ]; then
+              echo "⚠️  Skipping $PKG_DIR — no package.json"
+              continue
+            fi
+
+            # Skip private packages
+            IS_PRIVATE=$(node -p "require('./$PKG_JSON').private || false")
+            if [ "$IS_PRIVATE" = "true" ]; then
+              echo "⏭  $PKG_DIR is private, skipping"
+              continue
+            fi
+
+            PKG_NAME=$(node -p "require('./$PKG_JSON').name")
+            LOCAL_VER=$(node -p "require('./$PKG_JSON').version")
+
+            # Get the latest published version (empty if never published)
+            NPM_VER=$(npm view "$PKG_NAME" version 2>/dev/null || echo "0.0.0")
+
+            if [ "$LOCAL_VER" != "$NPM_VER" ]; then
+              echo "🚀 Publishing $PKG_NAME@$LOCAL_VER (was $NPM_VER)"
+              pnpm --filter "$PKG_NAME" publish --access public --no-git-checks --provenance
+            else
+              echo "✓  $PKG_NAME@$LOCAL_VER already published, skipping"
+            fi
+          done

@@ -39,17 +39,20 @@
         {
           "id": "openweave.graph",
           "name": "Knowledge Graph",
-          "type": "webview"
+          "type": "webview",
+          "icon": "$(type-hierarchy)"
         },
         {
           "id": "openweave.milestones",
           "name": "Milestones",
-          "type": "tree"
+          "type": "tree",
+          "icon": "$(checklist)"
         },
         {
           "id": "openweave.sessions",
           "name": "Sessions",
-          "type": "tree"
+          "type": "tree",
+          "icon": "$(database)"
         }
       ]
     },

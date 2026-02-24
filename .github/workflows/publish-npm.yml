@@ -15,6 +15,8 @@ jobs:
     permissions:
       contents: read
       id-token: write  # for npm provenance
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     steps:
       - uses: actions/checkout@v4
@@ -41,8 +43,7 @@ jobs:
       # For each publishable package: compare current version vs npm latest.
       # If the version is new → publish.
       - name: Publish changed packages
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        if: ${{ env.NODE_AUTH_TOKEN != '' }}
         run: |
           set -e
 

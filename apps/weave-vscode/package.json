@@ -4,6 +4,7 @@
   "description": "OpenWeave VS Code Extension — WeaveGraph sidebar, milestones & MCP tools",
   "version": "0.1.0",
   "publisher": "openweave",
+  "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",

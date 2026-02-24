@@ -8,12 +8,20 @@
 // Graph primitives
 // ---------------------------------------------------------------------------
 
+export type NodeType =
+  | 'CONCEPT'
+  | 'DECISION'
+  | 'MILESTONE'
+  | 'ERROR'
+  | 'CORRECTION'
+  | 'CODE_ENTITY';
+
 export interface WeaveNode {
   id: string;
   label: string;
-  type: string;
+  type: NodeType;
   description?: string;
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, string>;
   createdAt?: string;
   updatedAt?: string;
 }

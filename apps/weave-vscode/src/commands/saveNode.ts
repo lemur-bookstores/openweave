@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import { WeaveExtensionClient } from '../client/WeaveExtensionClient';
+import { NodeType } from '../types';
 
-const NODE_TYPES = [
-  'concept', 'task', 'milestone', 'project', 'decision',
-  'issue', 'session', 'file', 'person', 'other',
+const NODE_TYPES: NodeType[] = [
+  'CONCEPT', 'DECISION', 'MILESTONE', 'ERROR', 'CORRECTION', 'CODE_ENTITY',
 ];
 
 /**
@@ -44,7 +44,7 @@ export async function saveNodeCommand(client: WeaveExtensionClient): Promise<voi
 
   const result = await client.saveNode({
     label: label.trim(),
-    type: typePick.label,
+    type: typePick.label as NodeType,
     description: description.trim(),
   });
 

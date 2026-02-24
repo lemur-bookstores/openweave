@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { WeaveExtensionClient } from '../client/WeaveExtensionClient';
-import { WeaveNode } from '../types';
+import { NodeType, WeaveNode } from '../types';
 
 // ---------------------------------------------------------------------------
 // Participant registration — gracefully no-ops when Copilot Chat is absent
@@ -164,7 +164,7 @@ async function handleSave(
   stream.progress('Extracting node details with Copilot…');
 
   let label       = '';
-  let type        = 'concept';
+  let type: NodeType = 'CONCEPT';
   let description = '';
 
   try {
@@ -173,7 +173,7 @@ async function handleSave(
       vscode.LanguageModelChatMessage.User(
         `Extract a knowledge-graph node from the following user message.
 Reply ONLY with a JSON object — NO markdown fences, NO extra text:
-{"label":"<short label, max 5 words>","type":"<concept|task|milestone|project|decision|issue|file|person|other>","description":"<one clear sentence>"}
+{"label":"<short label, max 5 words>","type":"<CONCEPT|DECISION|MILESTONE|ERROR|CORRECTION|CODE_ENTITY>","description":"<one clear sentence>"}
 
 User message: ${text}`,
       ),
@@ -183,9 +183,11 @@ User message: ${text}`,
     let raw = '';
     for await (const chunk of response.text) { raw += chunk; }
 
+    const VALID_TYPES: NodeType[] = ['CONCEPT', 'DECISION', 'MILESTONE', 'ERROR', 'CORRECTION', 'CODE_ENTITY'];
     const parsed = JSON.parse(raw.trim()) as { label?: string; type?: string; description?: string };
     label       = (parsed.label       ?? '').trim();
-    type        = (parsed.type        ?? 'concept').trim();
+    const rawType = (parsed.type ?? '').trim().toUpperCase() as NodeType;
+    type        = VALID_TYPES.includes(rawType) ? rawType : 'CONCEPT';
     description = (parsed.description ?? '').trim();
   } catch {
     // LLM extraction failed — fall back to command palette

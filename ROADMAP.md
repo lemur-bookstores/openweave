@@ -223,7 +223,7 @@ Leer docs\SKILL-package-setup.md
 - ✅ `ConfigGenerator` — generates `mcpServers` entries for stdio and HTTP modes
 - ✅ `weave-link install <claude|cursor>` CLI command
 - ✅ `weave-link uninstall <claude|cursor>` CLI command
-- � VS Code extension with WeaveGraph sidebar → **M25**
+- ✅ VS Code extension with WeaveGraph sidebar → **M25**
 - 🔜 Cline plugin → **M26**
 
 ### M9 · Remote WeaveLink ✅
@@ -737,11 +737,11 @@ WEAVE_PROVIDER=sqlite        # provider de persistencia (sqlite | postgres | ...
 > Goal: Integrar OpenWeave nativamente en el flujo de trabajo del desarrollador dentro de VS Code
 > y en el ciclo de asistentes de IA de código como Cline — sin salir del editor.
 > Incluye configuración lista-para-usar para GitHub Copilot (VS Code MCP nativo), Continue y Cline.
-> Status: M25/M26/MCP-QC planned
+> Status: M25 ✅ · M26/MCP-QC planned
 
 ---
 
-### M25 · VS Code Extension — WeaveGraph Sidebar 🔜
+### M25 · VS Code Extension — WeaveGraph Sidebar ✅
 
 Extensión oficial de OpenWeave para VS Code. Expone el grafo de conocimiento,
 las sesiones activas y los milestones directamente en el sidebar del editor.
@@ -828,18 +828,19 @@ WeaveExtensionClient  ──HTTP──►  WeaveLink (localhost:3000)
 - `vsce package` en CI (`apps/weave-vscode/.github/workflows/publish.yml`)
 
 **Tareas de implementación:**
-- [ ] Scaffold `apps/weave-vscode/` — `package.json` con `vscode` engine ≥ 1.85
-- [ ] `extension.ts` — `activate()`: registra comandos, providers, status bar
-- [ ] `WeaveExtensionClient` — wrapper `WeaveDashboardClient` con retry y SSE keepalive
-- [ ] `WeaveStatusBar` — estado de conexión + sesión activa en barra inferior
-- [ ] `SessionTreeProvider` — `TreeDataProvider<SessionItem>` con refresh on SSE event
-- [ ] `MilestoneTreeProvider` — `TreeDataProvider<MilestoneItem>` con íconos por status
-- [ ] `GraphWebviewPanel` — Webview con HTML+D3 del `GraphRenderer` de weave-dashboard
-- [ ] Comandos: `init`, `query` (QuickPick), `saveNode` (InputBox flow), `connect`
-- [ ] Configura `openweave.autoStart` para levantar `weave-link start` al abrir workspace
+- [x] Scaffold `apps/weave-vscode/` — `package.json` con `vscode` engine ≥ 1.85
+- [x] `extension.ts` — `activate()`: registra comandos, providers, status bar
+- [x] `WeaveExtensionClient` — wrapper HTTP con retry, SSE y polling fallback
+- [x] `WeaveStatusBar` — estado de conexión + nodo count en barra inferior
+- [x] `SessionTreeProvider` — `TreeDataProvider<SessionItem>` con refresh on SSE event
+- [x] `MilestoneTreeProvider` — `TreeDataProvider<MilestoneItem>` con íconos por status
+- [x] `GraphWebviewPanel` — Webview con D3 v7 force-directed graph, zoom/drag/theme
+- [x] Comandos: `init`, `query` (QuickPick), `saveNode` (InputBox flow), `connect`
+- [x] Chat Participant `@openweave` — slash commands + lenguaje natural EN/ES (Copilot Chat)
+- [x] `openweave.autoStart` + `Start/Stop WeaveLink Server` commands integrados
 - [ ] Tests con `@vscode/test-electron` — mocks de vscode API
 - [ ] CI: `vsce package` + upload `.vsix` como artifact
-- [ ] Docs: `apps/weave-vscode/README.md` — instalación, configuración, capturas de pantalla
+- [x] Docs: `apps/weave-vscode/README.md` — instalación, configuración, uso completo
 - [ ] Unit tests: ≥ 8 tests (client, tree providers, status bar, command handlers)
 
 ---

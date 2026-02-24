@@ -92,7 +92,7 @@ function startServer(context: vscode.ExtensionContext, client: WeaveExtensionCli
     name: 'WeaveLink',
     shellPath: undefined, // uses default shell
   });
-  _serverTerminal.sendText(`npx @openweave/weave-link start --port ${port}`);
+  _serverTerminal.sendText(`npx --yes @openweave/weave-link start --port ${port}`);
   _serverTerminal.show();
 
   // Auto-connect after a brief delay

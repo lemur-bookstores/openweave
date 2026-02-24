@@ -2,7 +2,7 @@
   "name": "@openweave/weave-vscode",
   "displayName": "OpenWeave",
   "description": "OpenWeave VS Code Extension — WeaveGraph sidebar, milestones & MCP tools",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "openweave",
   "private": true,
   "license": "MIT",
@@ -18,7 +18,13 @@
     "Visualization",
     "Programming Languages"
   ],
-  "keywords": ["openweave", "knowledge-graph", "mcp", "ai", "agent"],
+  "keywords": [
+    "openweave",
+    "knowledge-graph",
+    "mcp",
+    "ai",
+    "agent"
+  ],
   "icon": "media/icon.png",
   "activationEvents": [
     "onStartupFinished",
@@ -161,7 +167,13 @@
         "openweave.provider": {
           "type": "string",
           "default": "sqlite",
-          "enum": ["json", "sqlite", "mongodb", "postgres", "mysql"],
+          "enum": [
+            "json",
+            "sqlite",
+            "mongodb",
+            "postgres",
+            "mysql"
+          ],
           "description": "Storage provider used when autoStart launches WeaveLink."
         }
       }

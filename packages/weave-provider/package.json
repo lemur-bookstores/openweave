@@ -1,6 +1,6 @@
 {
   "name": "@openweave/weave-provider",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Storage-agnostic persistence contract for OpenWeave — IWeaveProvider<T> interface + built-in implementations",
   "private": false,
   "license": "MIT",
@@ -27,7 +27,12 @@
     "lint": "eslint src --max-warnings 0",
     "clean": "rm -rf dist"
   },
-  "keywords": ["openweave", "persistence", "provider", "storage"],
+  "keywords": [
+    "openweave",
+    "persistence",
+    "provider",
+    "storage"
+  ],
   "devDependencies": {
     "@types/node": "22.10.2",
     "typescript": "5.7.2",

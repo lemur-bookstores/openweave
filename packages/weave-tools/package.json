@@ -1,6 +1,6 @@
 {
   "name": "@openweave/weave-tools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "WeaveTools — External Tool Registry & Adapters for OpenWeave agent extensibility",
   "private": false,
   "license": "MIT",

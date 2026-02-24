@@ -87,13 +87,12 @@ function startServer(context: vscode.ExtensionContext, client: WeaveExtensionCli
 
   const cfg = vscode.workspace.getConfiguration('openweave');
   const port = new URL(cfg.get<string>('serverUrl', 'http://localhost:3000')).port || '3000';
-  const provider = cfg.get<string>('provider', 'sqlite');
 
   _serverTerminal = vscode.window.createTerminal({
     name: 'WeaveLink',
     shellPath: undefined, // uses default shell
   });
-  _serverTerminal.sendText(`npx weave-link start --port ${port} --provider ${provider}`);
+  _serverTerminal.sendText(`npx @openweave/weave-link start --port ${port}`);
   _serverTerminal.show();
 
   // Auto-connect after a brief delay

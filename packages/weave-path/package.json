@@ -21,7 +21,6 @@
   ],
   "author": "OpenWeave Team",
   "license": "MIT",
-  "private": true,
   "devDependencies": {
     "@types/node": "22.10.1",
     "typescript": "5.7.2",

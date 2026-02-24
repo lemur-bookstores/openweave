@@ -36,9 +36,9 @@ export async function initCommand(client: WeaveExtensionClient): Promise<void> {
 
   const result = await client.saveNode({
     label: projectName,
-    type: 'project',
+    type: 'MILESTONE',
     description: description ?? '',
-    metadata: { rootPath: folder.uri.fsPath, initialised: true },
+    metadata: { rootPath: folder.uri.fsPath, initialised: 'true' },
   });
 
   if (result.success) {
